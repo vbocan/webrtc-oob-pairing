@@ -1,0 +1,26 @@
+{"t":0,"iteration":0,"event":"session_start","role":"laptop","ua":"Mozilla/5.0 (X11; Linux x86_64; rv:151.0) Gecko/20100101 Firefox/151.0","version":"0.4.0"}
+{"t":8978,"iteration":1,"event":"iteration_start","plannedSizeBytes":1048576}
+{"t":9479,"iteration":1,"event":"pairing_start"}
+{"t":9480,"iteration":1,"event":"iteration_pairing_threw","reason":"RTCPeerConnection is not defined"}
+{"t":59480,"iteration":1,"event":"iteration_failed","phase":"pairing"}
+{"t":59480,"iteration":1,"event":"pairing_stopped"}
+{"t":61481,"iteration":2,"event":"iteration_start","plannedSizeBytes":1048576}
+{"t":61981,"iteration":2,"event":"pairing_start"}
+{"t":61982,"iteration":2,"event":"iteration_pairing_threw","reason":"RTCPeerConnection is not defined"}
+{"t":113344,"iteration":2,"event":"iteration_failed","phase":"pairing"}
+{"t":113344,"iteration":2,"event":"pairing_stopped"}
+{"t":115344,"iteration":3,"event":"iteration_start","plannedSizeBytes":1048576}
+{"t":115845,"iteration":3,"event":"pairing_start"}
+{"t":115846,"iteration":3,"event":"iteration_pairing_threw","reason":"RTCPeerConnection is not defined"}
+{"t":165845,"iteration":3,"event":"iteration_failed","phase":"pairing"}
+{"t":165845,"iteration":3,"event":"pairing_stopped"}
+{"t":167846,"iteration":4,"event":"iteration_start","plannedSizeBytes":1048576}
+{"t":168346,"iteration":4,"event":"pairing_start"}
+{"t":168347,"iteration":4,"event":"iteration_pairing_threw","reason":"RTCPeerConnection is not defined"}
+{"t":218348,"iteration":4,"event":"iteration_failed","phase":"pairing"}
+{"t":218348,"iteration":4,"event":"pairing_stopped"}
+{"t":220348,"iteration":5,"event":"iteration_start","plannedSizeBytes":1048576}
+{"t":220849,"iteration":5,"event":"pairing_start"}
+{"t":220849,"iteration":5,"event":"iteration_pairing_threw","reason":"RTCPeerConnection is not defined"}
+{"t":272312,"iteration":5,"event":"iteration_failed","phase":"pairing"}
+{"t":272312,"iteration":5,"event":"pairing_stopped"}

@@ -1,0 +1,61 @@
+{
+ "deviceMemory": 32,
+ "hardwareConcurrency": 24,
+ "timestamp": 1781737121407,
+ "getUserMedia": [
+  {
+   "audio": "{\"echoCancellation\": {\"ideal\": false}, \"autoGainControl\": {\"ideal\": false}, \"noiseSuppression\": {\"ideal\": false}}",
+   "origin": "https://localhost:8000",
+   "pid": 34144,
+   "request_id": 0,
+   "request_type": "getUserMedia",
+   "rid": 340,
+   "timestamp": 1781737022686.801,
+   "url": "https://localhost:8000/laptop.html"
+  },
+  {
+   "audio_track_info": "{\"id\":\"b38a667b-d1b9-4928-9c62-37b29c1ec65f\",\"label\":\"Default - Microphone (Logitech BRIO) (046d:085e)\"}",
+   "pid": 34144,
+   "request_id": 0,
+   "request_type": "getUserMedia",
+   "rid": 340,
+   "stream_id": "00e33e48-e81b-4925-9c59-653567f1c807",
+   "timestamp": 1781737022773.389,
+   "video_track_info": "null"
+  }
+ ],
+ "PeerConnections": {},
+ "UserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0",
+ "UserAgentData": {
+  "brands": [
+   {
+    "brand": "Microsoft Edge",
+    "version": "149"
+   },
+   {
+    "brand": "Chromium",
+    "version": "149"
+   },
+   {
+    "brand": "Not)A;Brand",
+    "version": "24"
+   }
+  ],
+  "fullVersionList": [
+   {
+    "brand": "Microsoft Edge",
+    "version": "149.0.4022.69"
+   },
+   {
+    "brand": "Chromium",
+    "version": "149.0.7827.115"
+   },
+   {
+    "brand": "Not)A;Brand",
+    "version": "24.0.0.0"
+   }
+  ],
+  "mobile": false,
+  "platform": "Windows"
+ }
+}

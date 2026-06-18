@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pair phone · QR + ggwave</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f7fb;
+    --bg-grad-a: #faf5ff;
+    --bg-grad-b: #f0f9ff;
+    --card: #ffffff;
+    --border: rgba(15, 23, 42, 0.08);
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --accent: #7c3aed;
+    --accent-2: #ec4899;
+    --accent-3: #f97316;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --shadow: 0 1px 3px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.05);
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif;
+    background:
+      radial-gradient(800px 400px at 10% -10%, var(--bg-grad-a), transparent),
+      radial-gradient(800px 400px at 110% 0%, var(--bg-grad-b), transparent),
+      var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 1.5rem 1rem 3rem;
+    min-height: 100vh;
+    line-height: 1.55;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; }
+
+  /* Hero */
+  .hero { text-align: center; padding: 1rem 0 1.75rem; }
+  .hero h1 {
+    margin: 0 0 0.35em;
+    font-size: clamp(1.6em, 4vw, 2.4em);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 50%, var(--accent-3) 100%);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+  }
+  .hero p { margin: 0; color: var(--text-muted); font-size: 1.05em; max-width: 36em; margin: 0 auto; }
+
+  /* Progress strip */
+  .strip {
+    display: flex; align-items: center;
+    max-width: 600px; margin: 0 auto 2rem; padding: 0 1rem;
+    gap: 0;
+  }
+  .step { display: flex; flex-direction: column; align-items: center; flex: 0 0 auto; gap: 0.5em; min-width: 0; }
+  .step-dot {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #e2e8f0; color: white; font-weight: 600; font-size: 0.95em;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 240ms, box-shadow 240ms, transform 240ms;
+  }
+  .step.done .step-dot { background: var(--success); }
+  .step.active .step-dot {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    box-shadow: 0 0 0 6px rgba(124, 58, 237, 0.16);
+    transform: scale(1.06);
+  }
+  .step-label { font-size: 0.82em; color: var(--text-muted); white-space: nowrap; }
+  .step.done .step-label, .step.active .step-label { color: var(--text); font-weight: 500; }
+  .step-link { flex: 1 1 auto; height: 2px; background: #e2e8f0; margin: 0 -2px 1.55em; transition: background 240ms; }
+  .step-link.done { background: var(--success); }
+
+  /* Cards */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    animation: card-in 320ms ease both;
+  }
+  @keyframes card-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .card h2 { margin: 0 0 0.4em; font-size: 1.15em; font-weight: 600; }
+  .card .hint { color: var(--text-muted); font-size: 0.95em; margin: 0 0 1.1em; }
+
+  /* Buttons */
+  .btn {
+    font-family: inherit; font-size: 0.95em; font-weight: 500;
+    padding: 0.65em 1.25em; border-radius: 10px; border: 1px solid transparent;
+    cursor: pointer; transition: filter 160ms, transform 80ms, background 160ms, border-color 160ms;
+    display: inline-flex; align-items: center; gap: 0.55em;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: white;
+    box-shadow: 0 6px 16px rgba(236, 72, 153, 0.25);
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.4); box-shadow: none; }
+  .btn-ghost { background: white; border-color: var(--border); color: var(--text); }
+  .btn-ghost:hover:not(:disabled) { background: #f9fafb; border-color: rgba(15,23,42,0.16); }
+  .btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+  .row { display: flex; gap: 0.6em; flex-wrap: wrap; align-items: center; }
+
+  /* Form controls */
+  select, input[type=text] {
+    font-family: inherit; font-size: 0.95em;
+    padding: 0.55em 0.75em;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: white; color: var(--text);
+    transition: border-color 120ms, box-shadow 120ms;
+  }
+  select:focus, input[type=text]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+  }
+  .field { display: inline-flex; align-items: center; gap: 0.6em; }
+  .field .lbl { color: var(--text-muted); font-size: 0.9em; }
+
+  /* Pair card */
+  .pair-grid {
+    display: grid; grid-template-columns: auto 1fr; gap: 1.5rem; align-items: start;
+  }
+  @media (max-width: 600px) { .pair-grid { grid-template-columns: 1fr; } }
+  #qr {
+    background: white; padding: 12px;
+    border: 1px solid var(--border); border-radius: 12px;
+    image-rendering: pixelated; display: block;
+  }
+  .pair-meta { display: flex; flex-direction: column; gap: 0.8em; }
+  .pair-meta .meta-row { display: flex; justify-content: space-between; gap: 0.5em; }
+  .meta-row .k { color: var(--text-muted); font-size: 0.9em; }
+  .meta-row .v { font-family: ui-monospace, "SF Mono", monospace; font-size: 0.9em; }
+
+  /* Mic level */
+  .level { margin-top: 0.4em; }
+  .level-bar { height: 8px; background: #e2e8f0; border-radius: 6px; overflow: hidden; }
+  .level-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success) 0%, var(--warning) 70%, var(--danger) 100%);
+    width: 0%; transition: width 80ms linear;
+  }
+
+  /* Status pill */
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 0.4em;
+    padding: 0.3em 0.75em; border-radius: 999px;
+    background: #f1f5f9; color: var(--text); font-size: 0.85em; font-weight: 500;
+  }
+  .status-pill.ok { background: #d1fae5; color: #064e3b; }
+  .status-pill.bad { background: #fee2e2; color: #7f1d1d; }
+  .status-pill.warn { background: #fef3c7; color: #78350f; }
+  .status-pill::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-muted);
+  }
+  .status-pill.ok::before { background: var(--success); animation: pulse 1.5s infinite; }
+  .status-pill.bad::before { background: var(--danger); }
+  .status-pill.warn::before { background: var(--warning); }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } }
+
+  /* Transfer */
+  .tx-actions { display: flex; gap: 0.6em; flex-wrap: wrap; margin: 0.75em 0 1em; }
+
+  /* Image gallery */
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.7em;
+    margin: 0.5em 0;
+  }
+  .tile {
+    position: relative;
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    padding: 0;
+    overflow: hidden;
+    background: #f1f5f9;
+    aspect-ratio: 4 / 3;
+    transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), border-color 160ms, box-shadow 200ms;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.06);
+    appearance: none; font: inherit;
+  }
+  .tile:hover:not(:disabled):not(.sent) {
+    transform: translateY(-3px) scale(1.02);
+    border-color: var(--accent);
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.18);
+  }
+  .tile img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: filter 200ms;
+  }
+  .tile:hover:not(:disabled):not(.sent) img { filter: brightness(1.05) saturate(1.1); }
+  .tile .tile-label {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 0.5em 0.65em;
+    background: linear-gradient(to top, rgba(15,23,42,0.85), rgba(15,23,42,0) 100%);
+    color: white;
+    font-size: 0.8em; font-weight: 500;
+    text-align: left;
+  }
+  .tile:disabled { cursor: not-allowed; }
+  .tile.dimmed { opacity: 0.45; pointer-events: none; }
+  .tile.sending {
+    border-color: var(--warning);
+    animation: tile-pulse 1.4s ease-in-out infinite;
+  }
+  .tile.sent::after {
+    content: "✓";
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--success); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2em; font-weight: 700;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.45);
+    animation: tile-check 360ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  @keyframes tile-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+    50%      { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+  }
+  @keyframes tile-check {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+  .tx-progress { height: 10px; background: #e2e8f0; border-radius: 6px; overflow: hidden; }
+  .tx-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 50%, var(--accent-3) 100%);
+    width: 0%; transition: width 120ms;
+  }
+  .tx-status {
+    font-family: ui-monospace, monospace; font-size: 0.88em;
+    color: var(--text-muted); min-height: 1.3em; margin-top: 0.5em;
+  }
+
+  /* Log */
+  .log-controls {
+    display: flex; align-items: center; gap: 0.6em;
+    color: var(--text-muted); font-size: 0.88em;
+    padding: 0.5rem 0.25rem; cursor: pointer;
+  }
+  .log-controls input { margin: 0; }
+  .log {
+    font-family: ui-monospace, "SF Mono", monospace; font-size: 0.82em;
+    background: #0f172a; color: #cbd5e1;
+    border-radius: 12px;
+    padding: 1em;
+    max-height: 16em; overflow-y: auto;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  .log .ok { color: #86efac; font-weight: 600; }
+  .log .bad { color: #fca5a5; font-weight: 600; }
+  .log .warn { color: #fde68a; }
+
+  /* Image preview thumbnail on success */
+  .last-sent { display: flex; align-items: center; gap: 0.8em; margin-top: 1em; padding: 0.75em; background: #f8fafc; border-radius: 12px; }
+  .last-sent img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; }
+  .last-sent .info { flex: 1; }
+  .last-sent .info .title { font-weight: 500; font-size: 0.95em; }
+  .last-sent .info .sub { color: var(--text-muted); font-size: 0.85em; }
+
+  /* Footer */
+  footer { text-align: center; color: var(--text-muted); font-size: 0.85em; padding: 2rem 0 0; }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>Pair your phone to this PC</h1>
+    <p>Show a QR code, hear a short chirp, transfer files peer-to-peer. No accounts. No signaling server. Just two devices in the same room.</p>
+  </header>
+
+  <div class="strip" id="strip">
+    <div class="step active" data-step="1"><div class="step-dot">1</div><div class="step-label">Get ready</div></div>
+    <div class="step-link"></div>
+    <div class="step"  data-step="2"><div class="step-dot">2</div><div class="step-label">Show QR</div></div>
+    <div class="step-link"></div>
+    <div class="step"  data-step="3"><div class="step-dot">3</div><div class="step-label">Connected</div></div>
+    <div class="step-link"></div>
+    <div class="step"  data-step="4"><div class="step-dot">4</div><div class="step-label">Sent ✓</div></div>
+  </div>
+
+  <!-- Step 1 — Setup -->
+  <section class="card" id="card-setup">
+    <h2>1 · Get ready</h2>
+    <p class="hint">Pick the microphone this PC should listen on. The phone will reply by playing a short audible chirp; this page needs to hear it.</p>
+    <div class="row">
+      <span class="field"><span class="lbl">Microphone</span>
+        <select id="mic-select"><option value="">System default</option></select>
+      </span>
+      <button id="start" class="btn btn-primary">▶ Start pairing</button>
+      <button id="stop"  class="btn btn-ghost" disabled>Stop</button>
+    </div>
+  </section>
+
+  <!-- Step 2 — Pair -->
+  <section class="card" id="card-pair" hidden>
+    <h2>2 · Show this to your phone</h2>
+    <p class="hint">Open the phone-side page on your phone, tap <b>Start scanner</b>, and point the camera at this code. You'll hear a brief chirp when the phone replies.</p>
+    <div class="pair-grid">
+      <canvas id="qr" width="320" height="320"></canvas>
+      <div class="pair-meta">
+        <div><span id="status-pill" class="status-pill">Waiting for phone…</span></div>
+        <div class="meta-row"><span class="k">Offer packet</span><span class="v" id="packet-size">—</span></div>
+        <div class="level">
+          <div class="meta-row"><span class="k">Mic level</span></div>
+          <div class="level-bar"><div id="levelbar" class="level-fill"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 3 — Transfer -->
+  <section class="card" id="card-transfer" hidden>
+    <h2>3 · Send something</h2>
+    <p class="hint">Connection is live. Click any photo below to send it to the phone, or pick your own file at the bottom.</p>
+    <div id="gallery" class="gallery"></div>
+    <div class="tx-actions">
+      <label class="btn btn-ghost" style="cursor:pointer">
+        📁 Or pick your own file…<input id="file" type="file" hidden>
+      </label>
+      <button id="send" class="btn btn-ghost" disabled>Send picked file</button>
+    </div>
+    <div class="tx-progress"><div id="tx-progress" class="tx-bar"></div></div>
+    <div id="tx-status" class="tx-status">Click a photo to send it to the phone.</div>
+    <div id="last-sent" class="last-sent" hidden>
+      <img id="last-thumb" alt="">
+      <div class="info">
+        <div class="title" id="last-name"></div>
+        <div class="sub"  id="last-stats"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Developer log -->
+  <label class="log-controls">
+    <input type="checkbox" id="log-toggle">
+    <span>Show developer log</span>
+  </label>
+  <section class="card" id="card-log" hidden>
+    <div class="log" id="log"></div>
+  </section>
+
+  <footer>
+    QR + ggwave demo · <a href="phone.html">phone-side page</a> · MIT
+  </footer>
+
+</div>
+
+<script src="https://unpkg.com/ggwave/ggwave.js"></script>
+<script type="module">
+import QRCode from 'https://esm.sh/qrcode@1.5.4';
+import { convertTypedArray, initGgwave } from './ggwave-shim.js';
+import {
+  localToPacket, packetToRemote,
+  bytesToB64url, b64urlToBytes,
+  tryDecodeQwbp, wireConnectionLifecycle,
+} from './pair-shared.js';
+import { sendFile, formatBytes } from './file-transfer.js';
+
+const PAIRING_TIMEOUT_MS = 45_000;
+
+// Bundled gallery — click a tile to send. Images live in assets/images/.
+const GALLERY = [
+  { file: 'pexels-pawel-hordjewicz-656227941-34404674.jpg', title: 'Autumn leaves' },
+  { file: 'pexels-ivan-s-8117908.jpg',                     title: 'Red carnations' },
+  { file: 'pexels-lucas-george-wendt-2279952-4519863.jpg',  title: 'Colour pencils' },
+  { file: 'pexels-khunkorn-laowisit-1359149-5233265.jpg',   title: 'Green pencils' },
+  { file: 'pexels-chavdar-lungov-2332494-3996267.jpg',      title: 'Easter eggs' },
+];
+
+const $ = (id) => document.getElementById(id);
+const logEl = $('log');
+
+function log(msg, cls = '') {
+  const line = document.createElement('div');
+  if (cls) line.className = cls;
+  line.textContent = msg;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function setStatus(msg, kind = '') {
+  const el = $('status-pill');
+  el.textContent = msg;
+  el.className = 'status-pill' + (kind ? ' ' + kind : '');
+}
+
+// Progress strip — drives the 4 dots at the top.
+const STEPS = ['ready', 'pair', 'connected', 'sent'];
+function setStep(name) {
+  const i = STEPS.indexOf(name);
+  document.querySelectorAll('#strip .step').forEach((s, idx) => {
+    s.classList.toggle('active', idx === i);
+    s.classList.toggle('done', idx < i);
+  });
+  document.querySelectorAll('#strip .step-link').forEach((c, idx) => {
+    c.classList.toggle('done', idx < i);
+  });
+}
+
+let pc = null, dc = null;
+let audioCtx = null, mediaStream = null, processor = null, micSource = null;
+let cancelLifecycle = null;
+let connected = false;
+let answerApplied = false;   // latch: an answer has been applied to this pc
+
+// -------- Mic device picker — auto-populated --------
+
+async function refreshMicList(label = false) {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const inputs = devices.filter(d => d.kind === 'audioinput');
+    const select = $('mic-select');
+    const prev = select.value;
+    select.innerHTML = '<option value="">System default</option>';
+    inputs.forEach((d, i) => {
+      const opt = document.createElement('option');
+      opt.value = d.deviceId;
+      opt.textContent = d.label || `Microphone ${i + 1}`;
+      select.appendChild(opt);
+    });
+    if ([...select.options].some(o => o.value === prev)) select.value = prev;
+  } catch (e) {
+    log(`Mic enumeration failed: ${e.message}`, 'warn');
+  }
+}
+// First pass — before permission, labels may be empty placeholders.
+refreshMicList();
+// React to OS-level device changes.
+navigator.mediaDevices?.addEventListener?.('devicechange', () => refreshMicList());
+
+// -------- Pairing flow --------
+
+async function startPairing() {
+  $('start').disabled = true;
+  $('stop').disabled = false;
+  connected = false;
+  answerApplied = false;
+  log('Creating RTCPeerConnection.');
+  setStep('pair');
+  $('card-pair').hidden = false;
+  setStatus('Setting up…');
+
+  pc = new RTCPeerConnection();
+  dc = pc.createDataChannel('transfer');
+  wireDataChannel(dc);
+
+  cancelLifecycle = wireConnectionLifecycle(pc, {
+    timeoutMs: PAIRING_TIMEOUT_MS,
+    log,
+    status: (msg, cls) => setStatus(msg, cls === 'ok' ? 'ok' : cls === 'bad' ? 'bad' : ''),
+    onConnected: () => {
+      log('(ICE connected; still listening for the chirp.)');
+      setStatus('Almost there — handshaking…');
+    },
+    onTimeout: () => {
+      log(`No connection within ${PAIRING_TIMEOUT_MS/1000}s. Stop, then try again closer or with the volume up.`, 'bad');
+      setStatus('Timed out. Try Stop → Start again.', 'bad');
+    },
+  });
+
+  const offer = await pc.createOffer();
+  log('createOffer OK. Patching ICE creds (HKDF) and gathering ICE…');
+  const { packet } = await localToPacket(pc, 'offer', offer.sdp);
+  const qrText = bytesToB64url(packet);
+  log(`Encoded offer: ${packet.length} B binary, ${qrText.length} chars base64url.`);
+  $('packet-size').textContent = `${packet.length} B`;
+
+  await QRCode.toCanvas($('qr'), qrText, { errorCorrectionLevel: 'M', margin: 1, width: 320 });
+  log('QR rendered. Point your phone at it.');
+  setStatus('Waiting for phone…');
+
+  await startMicLoop();
+  // Now that permission is granted, refresh mic labels with real device names.
+  refreshMicList(true);
+}
+
+function wireDataChannel(channel) {
+  channel.onopen = () => {
+    log(`DataChannel "${channel.label}" open.`, 'ok');
+    connected = true;
+    stopMic();
+    setStatus('Connected — ready to send.', 'ok');
+    setStep('connected');
+    $('card-transfer').hidden = false;
+    $('send').disabled = !$('file').files.length;
+  };
+  channel.onclose = () => log('DataChannel closed.');
+}
+
+async function startMicLoop() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+  await audioCtx.resume();
+  log(`AudioContext @ ${audioCtx.sampleRate} Hz, state=${audioCtx.state}.`);
+  const { ggwave, instance } = await initGgwave(audioCtx);
+
+  const selectedId = $('mic-select').value;
+  const audioConstraints = {
+    echoCancellation: false, noiseSuppression: false, autoGainControl: false,
+    ...(selectedId ? { deviceId: { exact: selectedId } } : {}),
+  };
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false });
+  } catch (err) {
+    log(`Mic denied: ${err.message}`, 'bad');
+    setStatus('Microphone permission denied.', 'bad');
+    return;
+  }
+  const t = mediaStream.getAudioTracks()[0];
+  log(`Mic track: "${t.label}" enabled=${t.enabled} muted=${t.muted} state=${t.readyState}.`);
+  if (t.muted) {
+    setStatus('Mic is muted at the OS level — check device privacy or close apps holding the mic.', 'warn');
+  }
+
+  micSource = audioCtx.createMediaStreamSource(mediaStream);
+  processor = audioCtx.createScriptProcessor(1024, 1, 1);
+  processor.onaudioprocess = (e) => {
+    if (connected) return;
+    const ch = e.inputBuffer.getChannelData(0);
+    let sum = 0;
+    for (let i = 0; i < ch.length; i++) sum += ch[i] * ch[i];
+    $('levelbar').style.width = Math.min(100, Math.sqrt(sum / ch.length) * 400) + '%';
+    const res = ggwave.decode(instance, convertTypedArray(new Float32Array(ch), Int8Array));
+    if (res && res.length > 0) {
+      handleIncoming(new TextDecoder('utf-8').decode(res));
+    }
+  };
+  micSource.connect(processor);
+  processor.connect(audioCtx.destination);
+  log(`Listening @ ${audioCtx.sampleRate} Hz.`);
+}
+
+function stopMic() {
+  if (processor) { processor.disconnect(); processor.onaudioprocess = null; processor = null; }
+  if (micSource) { micSource.disconnect(); micSource = null; }
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+}
+
+async function handleIncoming(text) {
+  if (connected || answerApplied) return;
+  log(`Audio frame decoded: ${text.length} chars.`);
+  let packet;
+  try { packet = b64urlToBytes(text); }
+  catch { log('Not base64url — ignoring.', 'warn'); return; }
+  try { tryDecodeQwbp(packet); }
+  catch (e) { log(`Ignoring frame: ${e.message}`, 'warn'); return; }
+
+  // Only an offerer still awaiting an answer may apply one. After the first
+  // answer lands, signalingState is 'stable'; a duplicate ggwave decode of
+  // the same chirp (the waveform lingers in the air, or the phone re-chirps)
+  // would otherwise call setRemoteDescription again and throw 'Called in
+  // wrong state: stable' mid-DTLS, killing the half-built channel.
+  if (!pc || pc.signalingState !== 'have-local-offer') {
+    log(`Ignoring answer: peer not awaiting one (state=${pc ? pc.signalingState : 'no pc'}).`, 'warn');
+    return;
+  }
+
+  log(`Valid QWBP answer (${packet.length} B). Applying as remote description…`, 'ok');
+  setStatus('Phone reply received — finishing handshake.');
+  answerApplied = true;   // latch before awaiting so a concurrent decode bails out
+  try {
+    const { addedOk, addedBad } = await packetToRemote(pc, packet, /*isOffer=*/false);
+    log(`Remote applied. ICE candidates added: ${addedOk} ok, ${addedBad} rejected.`);
+  } catch (e) {
+    answerApplied = false;   // genuine failure — let a later chirp retry
+    log(`setRemoteDescription failed: ${e.message}`, 'bad');
+  }
+}
+
+function stopAll() {
+  $('start').disabled = false;
+  $('stop').disabled = true;
+  cancelLifecycle?.(); cancelLifecycle = null;
+  stopMic();
+  if (pc) { pc.close(); pc = null; dc = null; }
+  $('card-pair').hidden = true;
+  $('card-transfer').hidden = true;
+  $('send').disabled = true;
+  $('tx-progress').style.width = '0%';
+  $('last-sent').hidden = true;
+  setStep('ready');
+  setStatus('Idle.');
+}
+
+$('start').addEventListener('click', () => {
+  startPairing().catch(e => {
+    console.error(e); log(`ERROR: ${e.message}`, 'bad'); stopAll();
+  });
+});
+$('stop').addEventListener('click', stopAll);
+
+// -------- File / sample sending --------
+
+async function sendFileWithUi(file) {
+  $('send').disabled = true;
+  $('file').disabled = true;
+  $('tx-status').textContent = `Sending ${file.name} (${formatBytes(file.size)})…`;
+  const t0 = performance.now();
+  try {
+    await sendFile(dc, file, {
+      onProgress: (sent, total) => {
+        $('tx-progress').style.width = (sent / total) * 100 + '%';
+        $('tx-status').textContent =
+          `${formatBytes(sent)} / ${formatBytes(total)} (${((sent/total)*100).toFixed(0)} %)`;
+      },
+    });
+    const durMs = Math.round(performance.now() - t0);
+    const kbps = Math.round((file.size / 1024) / (durMs / 1000 || 1));
+    const durStr = (durMs/1000).toFixed(2);
+    $('tx-status').textContent = `Sent ${formatBytes(file.size)} in ${durStr} s (${kbps} KB/s).`;
+    setStep('sent');
+    if (file.type.startsWith('image/')) {
+      $('last-thumb').src = URL.createObjectURL(file);
+      $('last-name').textContent = file.name;
+      $('last-stats').textContent = `${formatBytes(file.size)} · sent in ${durStr} s · ${kbps} KB/s`;
+      $('last-sent').hidden = false;
+    } else {
+      $('last-sent').hidden = true;
+    }
+    log(`File sent: ${file.name} (${formatBytes(file.size)}) in ${durStr} s`, 'ok');
+  } catch (err) {
+    $('tx-status').textContent = `Failed: ${err.message}`;
+    log(`Send failed: ${err.message}`, 'bad');
+  } finally {
+    $('file').disabled = false;
+    $('send').disabled = !$('file').files.length;
+  }
+}
+
+$('file').addEventListener('change', () => {
+  $('send').disabled = !$('file').files.length || !dc || dc.readyState !== 'open';
+  if ($('file').files.length) $('tx-status').textContent = `Ready to send ${$('file').files[0].name}.`;
+});
+
+$('send').addEventListener('click', async () => {
+  const file = $('file').files[0];
+  if (!file || !dc || dc.readyState !== 'open') return;
+  await sendFileWithUi(file);
+});
+
+// Render the gallery as clickable tiles. Each tile holds a reference to
+// the matching GALLERY entry; clicking sends that image via the same
+// sendFileWithUi pipeline used for picked files.
+function renderGallery() {
+  const root = $('gallery');
+  root.innerHTML = '';
+  GALLERY.forEach((item) => {
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = 'tile';
+    tile.title = `Send "${item.title}" to the phone`;
+    tile.dataset.file = item.file;
+    tile.innerHTML =
+      `<img src="assets/images/${encodeURIComponent(item.file)}" alt="${item.title}" loading="lazy">` +
+      `<span class="tile-label">${item.title}</span>`;
+    tile.addEventListener('click', () => sendFromGallery(item, tile));
+    root.appendChild(tile);
+  });
+}
+renderGallery();
+
+async function sendFromGallery(item, tile) {
+  if (!dc || dc.readyState !== 'open') return;
+  // Visually mark this tile as sending and dim the rest.
+  const tiles = [...document.querySelectorAll('.tile')];
+  tiles.forEach(t => { if (t !== tile) t.classList.add('dimmed'); });
+  tile.classList.add('sending');
+  $('tx-status').textContent = `Loading ${item.title}…`;
+  try {
+    const resp = await fetch(`assets/images/${encodeURIComponent(item.file)}`);
+    if (!resp.ok) throw new Error(`fetch ${item.file}: HTTP ${resp.status}`);
+    const blob = await resp.blob();
+    const ext = item.file.split('.').pop().toLowerCase();
+    const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+    const file = new File([blob], item.file, { type: mime });
+    await sendFileWithUi(file);
+    tile.classList.remove('sending');
+    tile.classList.add('sent');
+    // Restore other tiles after a short celebratory pause.
+    setTimeout(() => {
+      tiles.forEach(t => t.classList.remove('dimmed', 'sent'));
+    }, 1800);
+  } catch (e) {
+    tile.classList.remove('sending');
+    tiles.forEach(t => t.classList.remove('dimmed'));
+    log(`Could not load gallery image: ${e.message}`, 'bad');
+    $('tx-status').textContent = `Failed: ${e.message}`;
+  }
+}
+
+// -------- Developer log toggle --------
+$('log-toggle').addEventListener('change', (e) => {
+  $('card-log').hidden = !e.target.checked;
+});
+</script>
+</body>
+</html>

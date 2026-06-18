@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Autorunner — PC measurement build</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 50em; margin: 1em auto; padding: 0 1em; line-height: 1.4; }
+  button { font-size: 1em; padding: 0.6em 1.2em; border-radius: 6px; border: 1px solid #444; background: #f8f8f8; cursor: pointer; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button.primary { background: #2563eb; color: white; border-color: #1d4ed8; font-weight: 600; }
+  #qr-box { display: flex; gap: 2em; align-items: flex-start; margin-top: 1em; }
+  #qr { background: white; padding: 10px; border: 1px solid #ddd; image-rendering: pixelated; }
+  #status { font-weight: 600; min-height: 1.4em; }
+  .log { font-family: ui-monospace, monospace; font-size: 0.85em; background: #fafafa; border: 1px solid #ddd; padding: 0.6em; border-radius: 4px; max-height: 16em; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+  .ok { color: #197a19; font-weight: 600; }
+  .bad { color: #b00; font-weight: 600; }
+  .warn { color: #b86a00; }
+  #level { display: inline-block; width: 12em; height: 0.6em; background: #eee; border-radius: 3px; vertical-align: middle; overflow: hidden; }
+  #level > div { height: 100%; background: #4a90e2; width: 0; transition: width 60ms linear; }
+  #xfer { margin-top: 1em; padding: 0.6em 0.8em; border: 1px solid #ddd; border-radius: 6px; background: #fafafa; }
+  #tx-progress { width: 100%; height: 1em; }
+  #tx-status { font-family: ui-monospace, monospace; font-size: 0.9em; color: #555; min-height: 1.3em; margin-top: 0.4em; }
+  #version-tag { font-family: ui-monospace, monospace; font-size: 0.7em; color: #888; font-weight: normal; margin-left: 0.6em; }
+  #controls { padding: 0.8em 1em; border: 1px solid #ccc; border-radius: 8px; background: #f4f6fb; }
+  #controls .row { display: flex; gap: 0.6em; align-items: center; margin: 0.45em 0; flex-wrap: wrap; }
+  #controls label { font-size: 0.95em; }
+  #controls input[type=number] { width: 4.5em; padding: 0.2em; }
+  #controls input[type=text] { padding: 0.2em; }
+  #controls select { padding: 0.2em; max-width: 22em; }
+  #auto-status { font-family: ui-monospace, monospace; color: #555; }
+  .hint { color: #666; font-size: 0.9em; }
+</style>
+</head>
+<body>
+<h2>Autorunner — PC measurement build <span id="version-tag"></span></h2>
+<p class="hint">This build runs <b>N back-to-back pairings automatically</b> and records a
+   structured JSONL event log. For a single hand-driven pairing, use the
+   <code>simple-poc</code> build instead.</p>
+
+<div id="controls">
+  <div class="row">
+    <label>Microphone:
+      <select id="mic-select"><option value="">System default</option></select>
+    </label>
+  </div>
+  <div class="row">
+    <label>Iterations <input id="auto-n" type="number" min="1" max="100" value="10"></label>
+    <label>Test file(s) <input id="auto-kb" type="text" value="100" size="16"></label>
+    <span class="hint">KB — comma-separated to sweep, e.g. <code>100,1024,10240</code></span>
+  </div>
+  <div class="row">
+    <button id="auto-run" class="primary">▶ Run</button>
+    <button id="auto-stop" disabled>Stop after current</button>
+    <span id="auto-status">idle</span>
+  </div>
+  <div class="row">
+    <button id="dl-log">Download JSONL log</button>
+    <span><span id="evt-count">0</span> events recorded</span>
+  </div>
+</div>
+
+<p id="status">Idle.</p>
+
+<div id="qr-box" hidden>
+  <canvas id="qr" width="320" height="320"></canvas>
+  <div>
+    <div><b>Packet:</b> <span id="packet-size">—</span></div>
+    <div><b>Mic level</b> <span id="level"><div id="levelbar"></div></span></div>
+  </div>
+</div>
+
+<div id="xfer" hidden>
+  <progress id="tx-progress" max="100" value="0"></progress>
+  <div id="tx-status">—</div>
+</div>
+
+<h3>Log</h3>
+<div id="log" class="log"></div>
+
+<script src="./vendor/ggwave.js"></script>
+<script type="module">
+import QRCode from './vendor/qrcode.js';
+import { convertTypedArray, initGgwave } from './ggwave-shim.js';
+import {
+  localToPacket, packetToRemote,
+  bytesToB64url, b64urlToBytes,
+  tryDecodeQwbp, wireConnectionLifecycle,
+  logLocalCandidates, logSelectedPair,
+} from './pair-shared.js';
+import { sendFile, formatBytes } from './file-transfer.js';
+import { EventLog } from './event-log.js';
+import { VERSION } from './version.js';
+
+const PAIRING_TIMEOUT_MS = 45_000;
+
+document.getElementById('version-tag').textContent = `v${VERSION}`;
+const evt = new EventLog('laptop', { version: VERSION });
+
+const $ = (id) => document.getElementById(id);
+const logEl = $('log');
+const status = (msg, cls = '') => { $('status').textContent = msg; $('status').className = cls; };
+const log = (msg, cls = '') => {
+  const line = document.createElement('div');
+  if (cls) line.className = cls;
+  line.textContent = msg;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+};
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// Live event counter — refreshed after every recorded event by hooking
+// each named event we emit. Cheap; only updates one text node.
+const updateEvtCount = () => { $('evt-count').textContent = evt.count(); };
+const EVENT_NAMES = [
+  'session_start', 'iteration_start',
+  'offer_created', 'ice_gathering_complete', 'qr_rendered',
+  'mic_listening', 'audio_frame_decoded', 'remote_applied',
+  'ice_connected', 'ice_failed', 'ice_timeout', 'datachannel_open',
+  'transfer_start', 'transfer_progress', 'transfer_complete',
+  'iteration_complete', 'iteration_failed', 'pairing_stopped',
+];
+EVENT_NAMES.forEach(e => evt.addEventListener(e, updateEvtCount));
+updateEvtCount();
+
+let pc = null;
+let dc = null;
+let audioCtx = null;
+let mediaStream = null;
+let processor = null;
+let micSource = null;
+let cancelLifecycle = null;
+let connected = false;
+let answerApplied = false;   // latch: at most one remote answer per PC
+let micLabelsResolved = false;
+
+// Stale-answer guard. Each pairing uses a fresh DTLS cert, so every genuine
+// answer packet is unique. If the phone's previous chirp is still in the air
+// when the next iteration starts listening, the mic re-decodes that old
+// answer; applying it would bind this offer to a fingerprint whose peer is
+// already gone, hanging DTLS at "connecting". We remember every answer we've
+// applied and ignore repeats, so the runner waits for the genuinely-new one.
+const appliedAnswers = new Set();
+const hexOf = (bytes) => Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+
+// ---- Mic device list — auto-populated at startup -------------------------
+
+// Device labels are only revealed by enumerateDevices() once the origin has
+// been granted mic permission. For the autorunner that permission usually
+// persists from a previous session, so labels are present on load; if not,
+// we show positional placeholders ("Microphone 1") and upgrade to real
+// names after the first getUserMedia call in startMicLoop.
+async function refreshMicList() {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const inputs = devices.filter(d => d.kind === 'audioinput');
+    const select = $('mic-select');
+    const prev = select.value;
+    select.innerHTML = '<option value="">System default</option>';
+    inputs.forEach((d, i) => {
+      const opt = document.createElement('option');
+      opt.value = d.deviceId;
+      opt.textContent = d.label || `Microphone ${i + 1}`;
+      select.appendChild(opt);
+    });
+    if ([...select.options].some(o => o.value === prev)) select.value = prev;
+  } catch (e) {
+    log(`Mic enumeration failed: ${e.message}`, 'warn');
+  }
+}
+refreshMicList();
+navigator.mediaDevices?.addEventListener?.('devicechange', () => refreshMicList());
+
+async function startPairing() {
+  connected = false;
+  answerApplied = false;
+  evt.record('pairing_start');
+  log('Creating RTCPeerConnection.');
+
+  // Fresh DTLS cert per pairing. ICE ufrag/pwd are HKDF-derived from the
+  // cert fingerprint (deriveCredentials), so if the browser reused a cert
+  // across iterations the ICE credentials would be identical every time —
+  // and a new agent can't cleanly demux inbound STUN that collides with
+  // the just-closed agent's credentials. A unique cert guarantees unique
+  // per-iteration ICE credentials.
+  const cert = await RTCPeerConnection.generateCertificate({ name: 'ECDSA', namedCurve: 'P-256' });
+  pc = new RTCPeerConnection({ certificates: [cert] });
+  dc = pc.createDataChannel('transfer');
+  wireDataChannel(dc);
+
+  // DTLS-level state. ICE 'connected' can happen without the chirp (creds
+  // are HKDF-derived), so connectionState is what actually tells us
+  // whether DTLS completed (-> 'connected') or the answer fingerprint was
+  // wrong/stale (-> 'failed'). This is the signal that distinguishes a
+  // real pairing from an ICE-only false start.
+  pc.addEventListener('connectionstatechange', () => {
+    evt.record('connection_state', { state: pc.connectionState });
+    log(`Connection state → ${pc.connectionState}`);
+  });
+
+  const pairingT0 = performance.now();
+
+  cancelLifecycle = wireConnectionLifecycle(pc, {
+    timeoutMs: PAIRING_TIMEOUT_MS,
+    log, status,
+    onConnected: () => {
+      // NOTE: ICE-connected is NOT "paired". HKDF-derived ICE creds
+      // are symmetric (both sides derive the same ufrag/pwd from the
+      // laptop's fingerprint), so the phone's STUN can take ICE to
+      // 'connected' before the chirp arrives. The real "paired" event
+      // is DataChannel.onopen — which requires DTLS, which requires
+      // the answer SDP, which only travels via the chirp.
+      evt.record('ice_connected', { totalMs: Math.round(performance.now() - pairingT0) });
+      log('(ICE connected; still listening for the chirp.)');
+      logSelectedPair(pc, log, evt);
+    },
+    onTimeout: () => {
+      evt.record('ice_timeout', { totalMs: Math.round(performance.now() - pairingT0) });
+      log(`No connection within ${PAIRING_TIMEOUT_MS / 1000}s. Move closer or raise phone volume.`, 'bad');
+      status('Pairing timed out.', 'bad');
+    },
+  });
+
+  const offer = await pc.createOffer();
+  evt.record('offer_created', { sdpSize: offer.sdp.length });
+  log('createOffer OK. Patching ICE creds (HKDF) and gathering ICE…');
+
+  const gatherT0 = performance.now();
+  const { packet, candidates } = await localToPacket(pc, 'offer', offer.sdp);
+  evt.record('ice_gathering_complete', {
+    durationMs: Math.round(performance.now() - gatherT0),
+    packetSize: packet.length,
+    candidates: candidates.length,
+  });
+  logLocalCandidates(pc, log, evt);
+
+  const qrText = bytesToB64url(packet);
+  log(`Encoded offer: ${packet.length} B binary, ${qrText.length} chars base64url.`);
+  $('packet-size').textContent = `${packet.length} B (${qrText.length} chars QR)`;
+  $('qr-box').hidden = false;
+
+  await QRCode.toCanvas($('qr'), qrText, {
+    errorCorrectionLevel: 'M',
+    margin: 1,
+    width: 320,
+  });
+  evt.record('qr_rendered', { packetSize: packet.length, qrChars: qrText.length });
+  log('QR rendered. Point your phone at it.');
+  status('Waiting for phone…');
+
+  await startMicLoop();
+}
+
+function wireDataChannel(channel) {
+  channel.onopen = () => {
+    evt.record('datachannel_open');
+    log(`DataChannel "${channel.label}" open.`, 'ok');
+    // The real "paired" event. DTLS handshake succeeded → SCTP is up.
+    // Only now do we stop listening on the mic.
+    connected = true;
+    stopMic();
+    status('Connected.', 'ok');
+  };
+  channel.onclose = () => log('DataChannel closed.');
+}
+
+async function startMicLoop() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+  const { ggwave, instance } = await initGgwave(audioCtx);
+  const selectedId = $('mic-select').value;
+  const audioConstraints = {
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false,
+    ...(selectedId ? { deviceId: { exact: selectedId } } : {}),
+  };
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({
+      audio: audioConstraints,
+      video: false,
+    });
+  } catch (err) {
+    log(`Mic denied: ${err.message}`, 'bad');
+    return;
+  }
+  // First successful permission grant — upgrade the mic dropdown labels
+  // from positional placeholders to real device names, once.
+  if (!micLabelsResolved) { micLabelsResolved = true; refreshMicList(); }
+  const t = mediaStream.getAudioTracks()[0];
+  log(`Mic track: "${t.label}" enabled=${t.enabled} muted=${t.muted} state=${t.readyState}.`);
+  micSource = audioCtx.createMediaStreamSource(mediaStream);
+  // ScriptProcessorNode is deprecated but ubiquitous; AudioWorklet would
+  // need a separate worklet file. 1024 samples ≈ 21 ms @ 48 kHz.
+  processor = audioCtx.createScriptProcessor(1024, 1, 1);
+  processor.onaudioprocess = (e) => {
+    if (connected || answerApplied) return;
+    const ch = e.inputBuffer.getChannelData(0);
+    let sum = 0;
+    for (let i = 0; i < ch.length; i++) sum += ch[i] * ch[i];
+    $('levelbar').style.width = Math.min(100, Math.sqrt(sum / ch.length) * 400) + '%';
+    const res = ggwave.decode(instance, convertTypedArray(new Float32Array(ch), Int8Array));
+    if (res && res.length > 0) {
+      handleIncoming(new TextDecoder('utf-8').decode(res));
+    }
+  };
+  micSource.connect(processor);
+  processor.connect(audioCtx.destination);  // required for ScriptProcessor to pump
+  evt.record('mic_listening', { sampleRate: audioCtx.sampleRate });
+  log(`Listening @ ${audioCtx.sampleRate} Hz.`);
+}
+
+function stopMic() {
+  if (processor) { processor.disconnect(); processor.onaudioprocess = null; processor = null; }
+  if (micSource) { micSource.disconnect(); micSource = null; }
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+}
+
+async function handleIncoming(text) {
+  if (connected || answerApplied) return;
+  log(`Frame decoded: ${text.length} chars.`);
+  let packet;
+  try { packet = b64urlToBytes(text); }
+  catch {
+    evt.record('audio_frame_decoded', { chars: text.length, valid: false, reason: 'not-base64url' });
+    log('Not base64url — ignoring.', 'warn'); return;
+  }
+  try { tryDecodeQwbp(packet); }
+  catch (e) {
+    evt.record('audio_frame_decoded', { chars: text.length, bytes: packet.length, valid: false, reason: e.message });
+    log(`Ignoring frame: ${e.message}`, 'warn'); return;
+  }
+
+  // Only an offerer awaiting an answer may apply one. After the first
+  // answer lands, signalingState is 'stable'; a duplicate ggwave decode
+  // of the same chirp would otherwise call setRemoteDescription again and
+  // throw 'Called in wrong state: stable' mid-DTLS, killing the channel.
+  if (!pc || pc.signalingState !== 'have-local-offer') {
+    log(`Ignoring answer: peer not awaiting one (state=${pc ? pc.signalingState : 'no pc'}).`, 'warn');
+    return;
+  }
+
+  // Stale-echo guard: if we've already applied this exact answer in a
+  // previous iteration, it's the phone's old chirp still in the air. Skip
+  // it and keep listening for this iteration's genuinely-new answer.
+  const answerHex = hexOf(packet);
+  if (appliedAnswers.has(answerHex)) {
+    evt.record('audio_frame_decoded', { chars: text.length, bytes: packet.length, valid: true, stale: true });
+    log('Ignoring stale answer (already applied in a previous iteration).', 'warn');
+    return;
+  }
+
+  evt.record('audio_frame_decoded', { chars: text.length, bytes: packet.length, valid: true });
+  log(`Valid QWBP answer (${packet.length} B). Applying as remote description…`, 'ok');
+  answerApplied = true;   // latch before awaiting so a concurrent decode bails out
+  try {
+    const { addedOk, addedBad } = await packetToRemote(pc, packet, /*isOffer=*/false);
+    appliedAnswers.add(answerHex);   // mark applied only on success, so a failed apply can still retry
+    evt.record('remote_applied', { addedOk, addedBad });
+    log(`Remote applied. ICE candidates added: ${addedOk} ok, ${addedBad} rejected.`);
+  } catch (e) {
+    answerApplied = false;   // genuine failure — let a later chirp retry
+    evt.record('remote_apply_failed', { reason: e.message });
+    log(`setRemoteDescription failed: ${e.message}`, 'bad');
+  }
+}
+
+function stopPairing() {
+  cancelLifecycle?.();
+  cancelLifecycle = null;
+  stopMic();
+  if (pc) { pc.close(); pc = null; dc = null; }
+  $('qr-box').hidden = true;
+  $('xfer').hidden = true;
+  $('tx-progress').value = 0;
+  evt.record('pairing_stopped');
+  status('Stopped.');
+}
+
+// ---- Auto-iterate runner (the autorunner's only run mode) ----------------
+
+$('dl-log').addEventListener('click', () => evt.download());
+
+let autoStopRequested = false;
+
+async function runIterations(n, sizesKb) {
+  $('auto-run').disabled = true;
+  $('auto-stop').disabled = false;
+  autoStopRequested = false;
+
+  const totalRuns = n * sizesKb.length;
+  let run = 0;
+
+  // Outer loop: one payload size per pass (sweep). Inner loop: N
+  // independent pairings at that size. The global iteration counter
+  // keeps incrementing across sizes, and each transfer_complete event
+  // records its own size, so the analyzer can bucket throughput by
+  // payload size after the fact.
+  for (const sizeKb of sizesKb) {
+    if (autoStopRequested) break;
+
+    const bytes = sizeKb * 1024;
+    const testFile = () => new File(
+      [new Uint8Array(bytes)],
+      `test-${bytes}.bin`,
+      { type: 'application/octet-stream' },
+    );
+
+    for (let i = 1; i <= n && !autoStopRequested; i++) {
+      run++;
+      $('auto-status').textContent =
+        `Run ${run}/${totalRuns} (${sizeKb} KB, iter ${i}/${n}): pairing…`;
+      evt.nextIteration({ plannedSizeBytes: bytes });
+
+      if (pc) stopPairing();
+      await sleep(500);
+
+      // Kick the pairing without awaiting — the lifecycle resolves via events.
+      startPairing().catch(e => evt.record('iteration_pairing_threw', { reason: e.message }));
+
+      let paired = false;
+      try {
+        await evt.waitFor('ice_connected', PAIRING_TIMEOUT_MS + 5000);
+        // ICE connected ≠ DataChannel open. DTLS + SCTP setup runs
+        // between them (~100-300 ms). Sending before the channel is
+        // truly open throws InvalidStateError.
+        if (!dc || dc.readyState !== 'open') {
+          await evt.waitFor('datachannel_open', 8000);
+        }
+        paired = true;
+      } catch {
+        evt.record('iteration_failed', { phase: 'pairing' });
+      }
+
+      if (paired) {
+        $('auto-status').textContent =
+          `Run ${run}/${totalRuns} (${sizeKb} KB, iter ${i}/${n}): sending…`;
+        try {
+          // sendFile resolves only after the receiver's ack, which is
+          // sent only after every chunk + the done sentinel has been
+          // processed. So closing the channel right after this is safe.
+          await sendFileWithUi(testFile());
+          evt.record('iteration_complete', { sizeBytes: bytes });
+        } catch {
+          evt.record('iteration_failed', { phase: 'transfer' });
+        }
+      }
+
+      stopPairing();
+      if (!autoStopRequested && run < totalRuns) await sleep(2000);
+    }
+  }
+
+  $('auto-status').textContent = autoStopRequested ? 'Stopped.' : 'Done.';
+  $('auto-run').disabled = false;
+  $('auto-stop').disabled = true;
+  autoStopRequested = false;
+}
+
+$('auto-run').addEventListener('click', () => {
+  const n = Math.max(1, parseInt($('auto-n').value, 10) || 1);
+  // Accept a single size or a comma-separated sweep, e.g. "100,1024,10240".
+  const sizesKb = ($('auto-kb').value || '100')
+    .split(',')
+    .map(s => Math.min(10240, Math.max(1, parseInt(s.trim(), 10) || 0)))
+    .filter(kb => kb > 0);
+  if (!sizesKb.length) sizesKb.push(100);
+  runIterations(n, sizesKb).catch(e => {
+    console.error(e);
+    log(`Auto-runner error: ${e.message}`, 'bad');
+    $('auto-run').disabled = false;
+    $('auto-stop').disabled = true;
+  });
+});
+$('auto-stop').addEventListener('click', () => { autoStopRequested = true; });
+
+// Transfer with progress display (no manual picker — the auto-runner
+// supplies a synthetic payload each iteration).
+async function sendFileWithUi(file) {
+  $('xfer').hidden = false;
+  $('tx-status').textContent = `Sending ${file.name} (${formatBytes(file.size)})…`;
+  evt.record('transfer_start', { name: file.name, size: file.size, mime: file.type });
+  const t0 = performance.now();
+  let lastReportedPct = -10;
+  try {
+    await sendFile(dc, file, {
+      onProgress: (sent, total) => {
+        $('tx-progress').value = total ? (sent / total) * 100 : 0;
+        $('tx-status').textContent =
+          `${formatBytes(sent)} / ${formatBytes(total)} (${((sent/total)*100).toFixed(0)} %)`;
+        // Throttle progress events to ~every 10% to avoid flooding the log.
+        const pct = (sent / total) * 100;
+        if (pct - lastReportedPct >= 10) {
+          lastReportedPct = pct;
+          evt.record('transfer_progress', { sent, total, pct: Math.round(pct) });
+        }
+      },
+    });
+    const durMs = Math.round(performance.now() - t0);
+    const kbps = Math.round((file.size / 1024) / (durMs / 1000 || 1));
+    $('tx-status').textContent = `Sent ${formatBytes(file.size)} in ${(durMs/1000).toFixed(2)}s (${kbps} KB/s).`;
+    evt.record('transfer_complete', { name: file.name, size: file.size, durationMs: durMs, kbps });
+    log(`File sent: ${file.name} (${formatBytes(file.size)}) in ${(durMs/1000).toFixed(2)}s`, 'ok');
+  } catch (err) {
+    $('tx-status').textContent = `Failed: ${err.message}`;
+    evt.record('transfer_failed', { reason: err.message });
+    log(`Send failed: ${err.message}`, 'bad');
+    throw err;
+  }
+}
+</script>
+</body>
+</html>

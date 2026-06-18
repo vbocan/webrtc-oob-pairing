@@ -1,0 +1,14 @@
+{
+  "policies": {
+    "DisableTelemetry": true,
+    "DisableFirefoxStudies": true,
+    "OverrideFirstRunPage": "",
+    "OverridePostUpdatePage": "",
+    "Preferences": {
+      "media.peerconnection.enabled": { "Value": false, "Status": "locked" },
+      "browser.download.folderList": { "Value": 2, "Status": "locked" },
+      "browser.download.dir": { "Value": "/config/downloads", "Status": "locked" },
+      "browser.download.useDownloadDir": { "Value": true, "Status": "locked" }
+    }
+  }
+}

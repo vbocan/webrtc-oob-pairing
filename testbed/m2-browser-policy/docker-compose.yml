@@ -1,0 +1,33 @@
+# M2 — WebRTC disabled by browser policy, in a throwaway Dockerized Firefox.
+#
+# Firefox enterprise policy `media.peerconnection.enabled=false` (mounted
+# read-only from policies.json) makes RTCPeerConnection unavailable, so the
+# pairing sender cannot create an offer. Nothing on the host browser is
+# touched; `docker compose down` removes every trace.
+#
+# Web UI (noVNC):  http://localhost:3010
+services:
+  firefox-m2:
+    image: lscr.io/linuxserver/firefox:latest
+    container_name: m2-firefox
+    security_opt:
+      - seccomp:unconfined
+    shm_size: "1gb"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Bucharest
+    volumes:
+      # Mount the policy at both locations Firefox reads on Linux, so it
+      # takes regardless of the image's Firefox install path. Verify via
+      # about:policies after start.
+      - ./policies.json:/usr/lib/firefox/distribution/policies.json:ro
+      - ./policies.json:/etc/firefox/policies/policies.json:ro
+      # Downloaded JSONL logs land here on the host.
+      - ./downloads:/config/downloads
+    ports:
+      - "3010:3000"   # http noVNC web UI
+      - "3011:3001"   # https noVNC web UI
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

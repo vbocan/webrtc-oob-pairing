@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 320" role="img" aria-label="QR + ggwave: laptop sends QR offer, phone replies via audible chirp">
+  <style>
+    .label    { font: 600 14px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; fill: #222; }
+    .sub      { font: 12px ui-monospace, monospace; fill: #666; }
+    .arrow    { stroke: #4a90e2; stroke-width: 2.5; fill: none; stroke-linecap: round; }
+    .arrow-r  { stroke: #197a19; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-dasharray: 6 4; }
+    .case     { fill: #f4f4f4; stroke: #444; stroke-width: 1.5; }
+    .screen   { fill: #fff; stroke: #444; stroke-width: 1.2; }
+    .qr-cell  { fill: #222; }
+    .speaker  { fill: #888; }
+    .lens     { fill: #444; }
+    .wave     { stroke: #197a19; stroke-width: 2; fill: none; stroke-linecap: round; }
+  </style>
+
+  <!-- ===== Laptop (left) ===== -->
+  <g transform="translate(40,80)">
+    <!-- Screen -->
+    <rect class="case" x="0" y="0" width="240" height="160" rx="6"/>
+    <rect class="screen" x="14" y="14" width="212" height="132" rx="3"/>
+    <!-- Stylised QR pattern: 8x8 cells -->
+    <g transform="translate(72,42)">
+      <!-- Three finder squares -->
+      <rect class="qr-cell" x="0"  y="0"  width="18" height="18"/>
+      <rect fill="#fff"     x="3"  y="3"  width="12" height="12"/>
+      <rect class="qr-cell" x="6"  y="6"  width="6"  height="6"/>
+      <rect class="qr-cell" x="50" y="0"  width="18" height="18"/>
+      <rect fill="#fff"     x="53" y="3"  width="12" height="12"/>
+      <rect class="qr-cell" x="56" y="6"  width="6"  height="6"/>
+      <rect class="qr-cell" x="0"  y="50" width="18" height="18"/>
+      <rect fill="#fff"     x="3"  y="53" width="12" height="12"/>
+      <rect class="qr-cell" x="6"  y="56" width="6"  height="6"/>
+      <!-- Random-looking modules -->
+      <rect class="qr-cell" x="24" y="0"  width="6" height="6"/>
+      <rect class="qr-cell" x="36" y="0"  width="6" height="6"/>
+      <rect class="qr-cell" x="24" y="12" width="6" height="6"/>
+      <rect class="qr-cell" x="42" y="12" width="6" height="6"/>
+      <rect class="qr-cell" x="0"  y="24" width="6" height="6"/>
+      <rect class="qr-cell" x="12" y="24" width="6" height="6"/>
+      <rect class="qr-cell" x="24" y="24" width="6" height="6"/>
+      <rect class="qr-cell" x="42" y="24" width="6" height="6"/>
+      <rect class="qr-cell" x="54" y="24" width="6" height="6"/>
+      <rect class="qr-cell" x="6"  y="36" width="6" height="6"/>
+      <rect class="qr-cell" x="18" y="36" width="6" height="6"/>
+      <rect class="qr-cell" x="30" y="36" width="6" height="6"/>
+      <rect class="qr-cell" x="48" y="36" width="6" height="6"/>
+      <rect class="qr-cell" x="60" y="36" width="6" height="6"/>
+      <rect class="qr-cell" x="24" y="50" width="6" height="6"/>
+      <rect class="qr-cell" x="36" y="50" width="6" height="6"/>
+      <rect class="qr-cell" x="48" y="50" width="6" height="6"/>
+      <rect class="qr-cell" x="36" y="62" width="6" height="6"/>
+      <rect class="qr-cell" x="54" y="62" width="6" height="6"/>
+      <rect class="qr-cell" x="60" y="50" width="6" height="6"/>
+    </g>
+    <!-- Microphone hint on the bezel -->
+    <circle cx="120" cy="154" r="3" class="lens"/>
+    <!-- Keyboard base -->
+    <path class="case" d="M -20 162 L 260 162 L 280 180 L -40 180 Z"/>
+    <text x="120" y="200" text-anchor="middle" class="label">Laptop</text>
+    <text x="120" y="216" text-anchor="middle" class="sub">QR display · mic in</text>
+  </g>
+
+  <!-- ===== Phone (right) ===== -->
+  <g transform="translate(560,70)">
+    <rect class="case" x="0" y="0" width="120" height="200" rx="14"/>
+    <rect class="screen" x="8" y="22" width="104" height="166" rx="4"/>
+    <!-- Camera dot -->
+    <circle cx="60" cy="12" r="3" class="lens"/>
+    <!-- Speaker grille -->
+    <rect class="speaker" x="44" y="6" width="20" height="3" rx="1.5"/>
+    <!-- Stylised viewfinder on screen -->
+    <rect x="22" y="50" width="76" height="76" rx="3" fill="none" stroke="#bbb" stroke-width="1.5"/>
+    <path d="M 30 50 L 22 50 L 22 58 M 90 50 L 98 50 L 98 58 M 22 118 L 22 126 L 30 126 M 98 118 L 98 126 L 90 126"
+          stroke="#4a90e2" stroke-width="2" fill="none"/>
+    <!-- Wave glyph below viewfinder -->
+    <path class="wave" d="M 22 150 Q 30 138 38 150 T 54 150 T 70 150 T 86 150 T 98 150"/>
+    <path class="wave" d="M 22 162 Q 30 156 38 162 T 54 162 T 70 162 T 86 162 T 98 162" opacity="0.6"/>
+    <text x="60" y="290" text-anchor="middle" class="label">Phone</text>
+    <text x="60" y="306" text-anchor="middle" class="sub">camera · speaker</text>
+  </g>
+
+  <!-- ===== Top arrow: laptop → phone (QR offer) ===== -->
+  <g>
+    <path class="arrow" d="M 290 110 L 552 110" marker-end="url(#arrow-blue)"/>
+    <text x="421" y="100" text-anchor="middle" class="label" fill="#4a90e2">QR code</text>
+    <text x="421" y="130" text-anchor="middle" class="sub">≈ 70 B · WebRTC offer (QWBP)</text>
+  </g>
+
+  <!-- ===== Bottom arrow: phone → laptop (ggwave answer) ===== -->
+  <g>
+    <path class="arrow-r" d="M 552 230 L 290 230" marker-end="url(#arrow-green)"/>
+    <text x="421" y="220" text-anchor="middle" class="label" fill="#197a19">audible chirp</text>
+    <text x="421" y="250" text-anchor="middle" class="sub">≈ 5 s · WebRTC answer (ggwave + QWBP)</text>
+  </g>
+
+  <defs>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4a90e2"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#197a19"/>
+    </marker>
+  </defs>
+</svg>

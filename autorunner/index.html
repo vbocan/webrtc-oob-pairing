@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QR + ggwave — serverless WebRTC pairing</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 40em; margin: 2em auto; padding: 0 1em; line-height: 1.5; color: #222; }
+  h1 { margin-bottom: 0.2em; }
+  .sub { color: #666; margin-top: 0; }
+  a.role { display: block; padding: 1em 1.2em; margin: 0.6em 0; border: 1px solid #888; border-radius: 8px; text-decoration: none; color: inherit; }
+  a.role:hover { background: #f4f4f4; }
+  a.role strong { display: block; font-size: 1.1em; margin-bottom: 0.2em; }
+  a.role span { color: #555; font-size: 0.95em; }
+  footer { margin-top: 2em; font-size: 0.9em; color: #666; }
+</style>
+</head>
+<body>
+<h1>QR + ggwave</h1>
+<p class="sub">Serverless WebRTC pairing between a laptop and a phone.</p>
+
+<a class="role" href="laptop.html">
+  <strong>I am the laptop</strong>
+  <span>Display a QR code with my WebRTC offer; listen on the mic for the phone's audio answer.</span>
+</a>
+<a class="role" href="phone.html">
+  <strong>I am the phone</strong>
+  <span>Scan the laptop's QR; transmit my WebRTC answer back as audible chirps.</span>
+</a>
+
+<footer>
+  Source: <a href="https://github.com/vbocan/qr-webrtc">github.com/vbocan/qr-webrtc</a> ·
+  <a href="README.md">README</a>
+</footer>
+</body>
+</html>

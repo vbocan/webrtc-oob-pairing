@@ -1,0 +1,123 @@
+# Sigma detection rule for the out-of-band QR+audio WebRTC pairing surface.
+#
+# This is a multi-document Sigma file: two base rules (F1, F3 from
+# telemetry-pipeline.md) plus a temporal correlation that fires only when
+# both occur in the same browser process within a short window. It is
+# written against the vendor-neutral `browser/webrtc_api` logsource
+# defined in telemetry-pipeline.md; map its fields onto your backend per
+# that document's §5 before deployment.
+#
+# Detection logic (see the accompanying paper):
+#   (F1) getUserMedia({audio})  AND
+#   (F3) an RTCDataChannel opens AND
+#   (F4) the page origin is not an approved VoIP origin
+#   within a 2-minute window, grouped by host+process.
+#
+# The discriminating clause is F3 (a DataChannel, not a media track) on a
+# non-allowlisted origin: legitimate Teams/Meet/Zoom/Whereby sessions run
+# on allowlisted origins and negotiate media tracks, so they do not match.
+# See evaluation.md for the detection-rate result and the structural
+# false-positive argument.
+
+title: Browser microphone capture (getUserMedia audio)
+name: webrtc_getusermedia_audio
+id: ceb6c4d5-eab7-4897-8caf-fe1a76edda86
+status: experimental
+description: >
+  A browser tab acquires the microphone via getUserMedia({audio}). Benign
+  on its own (every video call does this); used as one leg of the
+  temporal correlation below.
+references:
+  - https://github.com/<org>/webrtc-oob-pairing   # paper artifact
+  - the accompanying paper  # threat model and rule rationale
+author: V. Bocan
+date: 2026-06-15
+logsource:
+  product: browser
+  category: webrtc_api
+detection:
+  getusermedia_audio:
+    api: getusermedia
+    media_kind: audio
+  condition: getusermedia_audio
+falsepositives:
+  - Any legitimate use of the microphone in the browser (video calls,
+    voice messaging, dictation). Not actionable alone — only via the
+    correlation.
+level: informational
+---
+title: WebRTC DataChannel opened on a non-VoIP origin
+name: webrtc_datachannel_nonvoip
+id: f2b41290-3c21-4649-841a-1ccfea979ad3
+status: experimental
+description: >
+  An RTCDataChannel reaches the open state in a browser tab whose origin
+  is not in the corporate VoIP allowlist. Data-channel (SCTP) WebRTC from
+  an unmanaged origin is uncommon in enterprise browsing; combined with
+  concurrent microphone capture it is the signature of the characterised
+  out-of-band pairing surface.
+references:
+  - https://github.com/<org>/webrtc-oob-pairing
+  - the accompanying paper
+author: V. Bocan
+date: 2026-06-15
+logsource:
+  product: browser
+  category: webrtc_api
+detection:
+  datachannel_open:
+    api: datachannel_open
+  # F4: exclude approved VoIP/collaboration origins. Keep in sync with
+  # allowlist.yml; tune to the deploying org's sanctioned platforms.
+  voip_origin_allowlist:
+    tab_origin:
+      - 'https://teams.microsoft.com'
+      - 'https://*.teams.microsoft.com'
+      - 'https://meet.google.com'
+      - 'https://*.zoom.us'
+      - 'https://app.zoom.us'
+      - 'https://whereby.com'
+      - 'https://*.whereby.com'
+  condition: datachannel_open and not voip_origin_allowlist
+falsepositives:
+  - >
+    A sanctioned browser application that legitimately opens a WebRTC
+    DataChannel from an origin missing from the allowlist (e.g. an
+    internal collaboration tool). Resolve by adding the origin to
+    allowlist.yml. See evaluation.md §FP for the residual-risk discussion.
+level: medium
+---
+title: Out-of-band QR+audio WebRTC pairing (mic capture + DataChannel on non-VoIP origin)
+id: 46c5946c-7caf-4fed-93ee-4ecd1fc2e314
+status: experimental
+description: >
+  Detects the behavioural signature of the asymmetric QR-and-acoustic
+  out-of-band pairing characterised in the accompanying paper: a single
+  browser process acquires the microphone (getUserMedia audio) and, within
+  a short window, opens a WebRTC DataChannel from an origin that is not an
+  approved VoIP/collaboration platform. This conjunction does not occur in
+  ordinary enterprise browsing: legitimate WebRTC video calls run on
+  allowlisted origins and exchange media tracks rather than DataChannels.
+references:
+  - https://github.com/<org>/webrtc-oob-pairing
+  - the accompanying paper
+author: V. Bocan
+date: 2026-06-15
+correlation:
+  type: temporal
+  rules:
+    - webrtc_getusermedia_audio
+    - webrtc_datachannel_nonvoip
+  group-by:
+    - host
+    - process
+  timespan: 2m
+falsepositives:
+  - >
+    A non-allowlisted but sanctioned browser app that both captures the
+    microphone and opens a DataChannel within two minutes (rare; e.g. a
+    browser-based collaboration tool on an internal origin not yet in the
+    allowlist). Add the origin to allowlist.yml. The empirical
+    multi-platform false-positive benchmark is named as future work in
+    the accompanying paper
+level: high

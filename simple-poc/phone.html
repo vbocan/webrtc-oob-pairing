@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Phone · pair with PC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f7fb;
+    --bg-grad-a: #faf5ff;
+    --bg-grad-b: #f0f9ff;
+    --card: #ffffff;
+    --border: rgba(15, 23, 42, 0.08);
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --accent: #7c3aed;
+    --accent-2: #ec4899;
+    --accent-3: #f97316;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --shadow: 0 1px 3px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.05);
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif;
+    background:
+      radial-gradient(800px 400px at 10% -10%, var(--bg-grad-a), transparent),
+      radial-gradient(800px 400px at 110% 0%, var(--bg-grad-b), transparent),
+      var(--bg);
+    color: var(--text);
+    margin: 0; padding: 1rem 0.85rem 3rem;
+    min-height: 100vh; line-height: 1.5;
+  }
+  .wrap { max-width: 28em; margin: 0 auto; }
+
+  /* Hero */
+  .hero { text-align: center; padding: 0.5rem 0 1.5rem; }
+  .hero h1 {
+    margin: 0 0 0.3em;
+    font-size: 1.6em; font-weight: 700; letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2) 55%, var(--accent-3));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p { margin: 0; color: var(--text-muted); font-size: 0.95em; }
+
+  /* Cards */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 1.2rem;
+    margin-bottom: 1rem;
+    animation: card-in 280ms ease both;
+  }
+  @keyframes card-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .card h2 { margin: 0 0 0.5em; font-size: 1.05em; font-weight: 600; }
+  .card .hint { color: var(--text-muted); font-size: 0.92em; margin: 0 0 1em; }
+
+  /* Buttons */
+  .btn {
+    font-family: inherit; font-weight: 500;
+    padding: 0.85em 1em; border-radius: 12px; border: 1px solid transparent;
+    cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.5em;
+    width: 100%; font-size: 1em;
+    transition: filter 160ms, transform 80ms;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: white;
+    box-shadow: 0 6px 16px rgba(236, 72, 153, 0.25);
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.4); box-shadow: none; }
+  .btn-ghost { background: white; border-color: var(--border); color: var(--text); }
+  .btn-ghost:disabled { opacity: 0.5; }
+  .btn + .btn { margin-top: 0.5em; }
+
+  /* Status pill */
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 0.4em;
+    padding: 0.3em 0.8em; border-radius: 999px;
+    background: #f1f5f9; color: var(--text); font-size: 0.85em; font-weight: 500;
+  }
+  .status-pill.ok { background: #d1fae5; color: #064e3b; }
+  .status-pill.bad { background: #fee2e2; color: #7f1d1d; }
+  .status-pill.warn { background: #fef3c7; color: #78350f; }
+  .status-pill::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-muted);
+  }
+  .status-pill.ok::before { background: var(--success); animation: pulse 1.5s infinite; }
+  .status-pill.bad::before { background: var(--danger); }
+  .status-pill.warn::before { background: var(--warning); }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } }
+
+  /* Scanner */
+  #scanner {
+    position: relative; width: 100%; aspect-ratio: 4/3;
+    background: #0f172a; border-radius: 14px; overflow: hidden;
+    margin: 0.5em 0 1em;
+  }
+  #scanner video { width: 100%; height: 100%; object-fit: cover; }
+  #scanner canvas { display: none; }
+  /* viewfinder corners */
+  .viewfinder {
+    position: absolute; inset: 12%;
+    pointer-events: none;
+  }
+  .viewfinder::before, .viewfinder::after,
+  .viewfinder > .br, .viewfinder > .bl {
+    content: ""; position: absolute;
+    width: 28px; height: 28px;
+    border: 3px solid white; border-radius: 4px;
+  }
+  .viewfinder::before { top: 0; left: 0; border-right: 0; border-bottom: 0; }
+  .viewfinder::after { top: 0; right: 0; border-left: 0; border-bottom: 0; }
+  .viewfinder .bl { bottom: 0; left: 0; border-right: 0; border-top: 0; }
+  .viewfinder .br { bottom: 0; right: 0; border-left: 0; border-top: 0; }
+
+  /* Receive */
+  .receive-status {
+    font-family: ui-monospace, monospace; font-size: 0.85em;
+    color: var(--text-muted); min-height: 1.3em; margin-top: 0.4em;
+  }
+  .rx-progress { height: 10px; background: #e2e8f0; border-radius: 6px; overflow: hidden; margin: 0.5em 0; }
+  .rx-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 50%, var(--accent-3) 100%);
+    width: 0%; transition: width 120ms;
+  }
+  #rx-result { margin-top: 0.75em; }
+  #rx-result img {
+    width: 100%; height: auto; border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    animation: img-in 360ms ease both;
+  }
+  @keyframes img-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+  #rx-result a.download {
+    display: inline-flex; align-items: center; gap: 0.5em;
+    margin-top: 0.75em; padding: 0.6em 1em;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: white; border-radius: 10px; text-decoration: none; font-weight: 500;
+  }
+
+  /* Log */
+  .log-controls {
+    display: flex; align-items: center; gap: 0.6em;
+    color: var(--text-muted); font-size: 0.85em;
+    padding: 0.5rem 0.25rem; cursor: pointer;
+  }
+  .log-controls input { margin: 0; }
+  .log {
+    font-family: ui-monospace, monospace; font-size: 0.78em;
+    background: #0f172a; color: #cbd5e1;
+    border-radius: 12px; padding: 0.85em;
+    max-height: 14em; overflow-y: auto;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  .log .ok { color: #86efac; font-weight: 600; }
+  .log .bad { color: #fca5a5; font-weight: 600; }
+  .log .warn { color: #fde68a; }
+
+  /* Advanced settings */
+  details.advanced { margin-top: 0.25rem; }
+  details.advanced summary { cursor: pointer; color: var(--text-muted); font-size: 0.88em; padding: 0.4em 0.25em; }
+  details.advanced label { display: block; font-size: 0.88em; color: var(--text-muted); margin: 0.5em 0 0.25em; }
+  details.advanced select, details.advanced input { width: 100%; }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>Phone · pair with PC</h1>
+    <p>Tap Start, point your camera at the PC's QR code, and the phone will reply with a short chirp.</p>
+  </header>
+
+  <section class="card">
+    <h2>Get started</h2>
+    <p class="hint">Make sure your PC has the companion page open with its QR visible. The phone needs the camera (to scan) and the speaker (to reply).</p>
+    <button id="start" class="btn btn-primary">▶ Start scanner</button>
+    <button id="stop"  class="btn btn-ghost" disabled>Stop</button>
+  </section>
+
+  <section class="card" id="card-scan" hidden>
+    <h2>Point at the PC QR</h2>
+    <div><span id="status-pill" class="status-pill">Looking for QR…</span></div>
+    <div id="scanner">
+      <video id="video" playsinline muted></video>
+      <canvas id="scan"></canvas>
+      <div class="viewfinder"><span class="bl"></span><span class="br"></span></div>
+    </div>
+    <details class="advanced">
+      <summary>Audio settings</summary>
+      <label>Protocol
+        <select id="protocol">
+          <option value="AUDIBLE_FAST" selected>Audible Fast (~16 B/s)</option>
+          <option value="AUDIBLE_NORMAL">Audible Normal (more robust)</option>
+          <option value="AUDIBLE_FASTEST">Audible Fastest</option>
+        </select>
+      </label>
+      <label>Volume <input id="volume" type="range" min="1" max="100" value="65"></label>
+      <label>Gap between retries (ms)
+        <input id="gap" type="number" min="500" max="10000" value="1500">
+      </label>
+    </details>
+  </section>
+
+  <section class="card" id="card-receive" hidden>
+    <h2>Receiving</h2>
+    <p class="hint">Connection is live. The PC is sending something now…</p>
+    <div class="rx-progress"><div id="rx-progress" class="rx-bar"></div></div>
+    <div id="rx-status" class="receive-status">Waiting for the PC to send a file…</div>
+    <div id="rx-result"></div>
+  </section>
+
+  <label class="log-controls">
+    <input type="checkbox" id="log-toggle">
+    <span>Show developer log</span>
+  </label>
+  <section class="card" id="card-log" hidden>
+    <div class="log" id="log"></div>
+  </section>
+
+</div>
+
+<script src="https://unpkg.com/ggwave/ggwave.js"></script>
+<script type="module">
+import jsQR from 'https://esm.sh/jsqr@1.4.0';
+import { convertTypedArray, initGgwave, protocols } from './ggwave-shim.js';
+import {
+  localToPacket, packetToRemote,
+  bytesToB64url, b64urlToBytes,
+  tryDecodeQwbp, wireConnectionLifecycle,
+} from './pair-shared.js';
+import { receiveFile, formatBytes } from './file-transfer.js';
+
+const PAIRING_TIMEOUT_MS = 45_000;
+const MIN_QR_CHARS = 40;
+
+const $ = (id) => document.getElementById(id);
+const logEl = $('log');
+
+function log(msg, cls = '') {
+  const line = document.createElement('div');
+  if (cls) line.className = cls;
+  line.textContent = msg;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function setStatus(msg, kind = '') {
+  const el = $('status-pill');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'status-pill' + (kind ? ' ' + kind : '');
+}
+
+let pc = null, dc = null;
+let audioCtx = null, ggwave = null, ggInstance = null, protoMap = null;
+let videoStream = null;
+let scanRAF = 0;
+let txTimer = null;
+let txWaveform = null;
+let txCurrentSource = null;
+let transmitting = false;     // authoritative "chirp loop should continue" flag
+let cancelLifecycle = null;
+let connected = false;
+let scanned = false;
+let lastRejectedQr = null;
+
+async function ensureAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  // Unlock for mobile Chrome: resume() in the gesture context, then play
+  // a 1-sample silent buffer so the context stays "actively producing audio".
+  await audioCtx.resume();
+  const silent = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+  const node = audioCtx.createBufferSource();
+  node.buffer = silent;
+  node.connect(audioCtx.destination);
+  node.start();
+  ({ ggwave, instance: ggInstance } = await initGgwave(audioCtx));
+  protoMap = protocols(ggwave);
+  log(`AudioContext @ ${audioCtx.sampleRate} Hz, state=${audioCtx.state}.`);
+}
+
+async function startScanner() {
+  $('start').disabled = true;
+  $('stop').disabled = false;
+  $('card-scan').hidden = false;
+  scanned = false; connected = false; lastRejectedQr = null;
+  setStatus('Looking for QR…');
+
+  await ensureAudio();
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } }, audio: false,
+    });
+  } catch (err) {
+    log(`Camera denied: ${err.message}`, 'bad');
+    setStatus('Camera permission denied.', 'bad');
+    stopAll();
+    return;
+  }
+  const v = $('video');
+  v.srcObject = videoStream;
+  await v.play();
+  scanLoop();
+}
+
+function scanLoop() {
+  if (!videoStream) return;
+  const v = $('video');
+  const c = $('scan');
+  if (v.videoWidth && !scanned) {
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(v, 0, 0, c.width, c.height);
+    const img = ctx.getImageData(0, 0, c.width, c.height);
+    const hit = jsQR(img.data, img.width, img.height);
+    if (hit && hit.data && hit.data.length >= MIN_QR_CHARS && hit.data !== lastRejectedQr) {
+      scanned = true;
+      log(`QR scanned: ${hit.data.length} chars.`, 'ok');
+      onQrScanned(hit.data).catch(e => {
+        log(`Pairing failed: ${e.message}`, 'bad');
+        console.error(e);
+        scanned = false;
+      });
+    }
+  }
+  scanRAF = requestAnimationFrame(scanLoop);
+}
+
+async function onQrScanned(qrText) {
+  let packet;
+  try { packet = b64urlToBytes(qrText); }
+  catch {
+    log('QR text is not base64url — wrong code?', 'warn');
+    lastRejectedQr = qrText; scanned = false; return;
+  }
+  try { tryDecodeQwbp(packet); }
+  catch (e) {
+    log(`Ignoring scan: ${e.message}`, 'warn');
+    lastRejectedQr = qrText; scanned = false; return;
+  }
+  log(`Valid QWBP offer (${packet.length} B). Building answer.`, 'ok');
+  setStatus('QR scanned — building answer…');
+  stopScanner(/*keepAudio=*/true);
+
+  pc = new RTCPeerConnection();
+  pc.ondatachannel = (ev) => { dc = ev.channel; wireDataChannel(dc); };
+
+  cancelLifecycle = wireConnectionLifecycle(pc, {
+    timeoutMs: PAIRING_TIMEOUT_MS,
+    log,
+    status: (msg, cls) => setStatus(msg, cls === 'ok' ? 'ok' : cls === 'bad' ? 'bad' : ''),
+    onConnected: () => {
+      log('(ICE connected; still transmitting until DataChannel opens.)');
+      setStatus('Almost there — handshaking…');
+    },
+    onTimeout: () => {
+      log(`No connection within ${PAIRING_TIMEOUT_MS/1000}s. Move closer or raise the volume.`, 'bad');
+      setStatus('Pairing timed out.', 'bad');
+      stopTransmit();
+    },
+  });
+
+  const { addedOk, addedBad } = await packetToRemote(pc, packet, /*isOffer=*/true);
+  log(`Remote offer applied. Candidates: ${addedOk} ok, ${addedBad} rejected.`);
+
+  const answer = await pc.createAnswer();
+  const { packet: myPacket } = await localToPacket(pc, 'answer', answer.sdp);
+  const audioText = bytesToB64url(myPacket);
+  log(`Encoded answer: ${myPacket.length} B binary, ${audioText.length} chars base64url.`);
+  setStatus('Playing chirp — keep the phone near the PC mic.');
+  startTransmitLoop(audioText);
+}
+
+function wireDataChannel(channel) {
+  const handleOpen = () => {
+    log(`DataChannel "${channel.label}" open.`, 'ok');
+    connected = true;
+    stopTransmit();
+    setStatus('Connected — ready to receive.', 'ok');
+    $('card-receive').hidden = false;
+  };
+  // The answerer receives this channel via pc.ondatachannel; it may already
+  // be 'open' here, in which case the 'open' event already fired and
+  // assigning channel.onopen would never run — leaving the chirp loop alive
+  // despite a working transfer. Run synchronously if already open.
+  if (channel.readyState === 'open') handleOpen();
+  else channel.onopen = handleOpen;
+  channel.onclose = () => log('DataChannel closed.');
+  let arrivedAt = 0;
+  receiveFile(channel, {
+    onManifest: (m) => {
+      arrivedAt = performance.now();
+      $('rx-progress').style.width = '0%';
+      $('rx-status').textContent = `Receiving ${m.name} (${formatBytes(m.size)})…`;
+      $('rx-result').innerHTML = '';
+      log(`Incoming: ${m.name} (${formatBytes(m.size)}, ${m.mime})`);
+    },
+    onProgress: (got, total) => {
+      $('rx-progress').style.width = (got / total) * 100 + '%';
+      $('rx-status').textContent =
+        `${formatBytes(got)} / ${formatBytes(total)} (${((got/total)*100).toFixed(0)} %)`;
+    },
+    onComplete: (blob, m) => {
+      const durMs = Math.round(performance.now() - arrivedAt);
+      const kbps = Math.round((m.size / 1024) / (durMs / 1000 || 1));
+      $('rx-status').textContent =
+        `Received ${formatBytes(m.size)} in ${(durMs/1000).toFixed(2)} s (${kbps} KB/s).`;
+      log(`File received: ${m.name} in ${(durMs/1000).toFixed(2)} s`, 'ok');
+      const url = URL.createObjectURL(blob);
+      const result = $('rx-result');
+      result.innerHTML = '';
+      if (m.mime.startsWith('image/')) {
+        const img = document.createElement('img'); img.src = url; img.alt = m.name;
+        result.appendChild(img);
+      }
+      const link = document.createElement('a');
+      link.href = url; link.download = m.name; link.className = 'download';
+      link.textContent = `Save ${m.name}`;
+      result.appendChild(link);
+    },
+    onError: (err) => {
+      $('rx-status').textContent = `Receive failed: ${err.message}`;
+      log(`Receive failed: ${err.message}`, 'bad');
+    },
+  });
+}
+
+function startTransmitLoop(text) {
+  const proto = protoMap[$('protocol').value];
+  const volume = parseInt($('volume').value, 10);
+  const gap = parseInt($('gap').value, 10);
+  // Safe heap copy — ggwave's view goes stale if WASM memory moves.
+  const raw = ggwave.encode(ggInstance, text, proto, volume);
+  txWaveform = convertTypedArray(raw, Float32Array);
+  log(`Waveform: ${txWaveform.length} Float32 samples (≈${(txWaveform.length / audioCtx.sampleRate).toFixed(1)} s).`);
+
+  transmitting = true;
+  const tick = async () => {
+    if (!transmitting || connected) return;
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    const buffer = audioCtx.createBuffer(1, txWaveform.length, audioCtx.sampleRate);
+    buffer.getChannelData(0).set(txWaveform);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(audioCtx.destination);
+    txCurrentSource = src;
+    src.start();
+    src.onended = () => {
+      if (txCurrentSource === src) txCurrentSource = null;
+      // `transmitting` is the authoritative guard: stopTransmit() clears it
+      // before calling src.stop(), so the onended fired by that stop() does
+      // not reschedule the loop (which would chirp forever on a timeout).
+      if (!transmitting || connected) return;
+      txTimer = setTimeout(tick, gap);
+    };
+  };
+  tick();
+}
+
+function stopTransmit() {
+  transmitting = false;   // clear FIRST so the stop()-triggered onended bails out
+  if (txTimer) { clearTimeout(txTimer); txTimer = null; }
+  if (txCurrentSource) {
+    try { txCurrentSource.stop(); } catch {}
+    try { txCurrentSource.disconnect(); } catch {}
+    txCurrentSource = null;
+  }
+  txWaveform = null;
+}
+
+function stopScanner(keepAudio = false) {
+  if (scanRAF) { cancelAnimationFrame(scanRAF); scanRAF = 0; }
+  if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+  $('card-scan').hidden = true;
+  if (!keepAudio && audioCtx) { audioCtx.close(); audioCtx = null; ggwave = null; }
+}
+
+function stopAll() {
+  cancelLifecycle?.(); cancelLifecycle = null;
+  stopScanner();
+  stopTransmit();
+  if (pc) { pc.close(); pc = null; dc = null; }
+  $('start').disabled = false;
+  $('stop').disabled = true;
+  $('card-receive').hidden = true;
+  $('rx-progress').style.width = '0%';
+  $('rx-result').innerHTML = '';
+  $('rx-status').textContent = 'Waiting for the PC to send a file…';
+  setStatus('Idle.');
+}
+
+$('start').addEventListener('click', () => startScanner().catch(e => {
+  console.error(e); log(`ERROR: ${e.message}`, 'bad'); stopAll();
+}));
+$('stop').addEventListener('click', stopAll);
+
+$('log-toggle').addEventListener('change', (e) => {
+  $('card-log').hidden = !e.target.checked;
+});
+</script>
+</body>
+</html>

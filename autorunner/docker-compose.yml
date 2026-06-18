@@ -1,0 +1,25 @@
+# Optional: run the measurement build's static HTTPS server in Docker
+# instead of `python serve.py` on the host. serve.py is stdlib-only, so
+# the stock python image needs no extra packages and nothing is installed
+# on the host.
+#
+#   docker compose up           # serves https on :8000
+#
+# The workstation browser opens https://localhost:8000/laptop.html; the
+# phone reaches https://<host-LAN-IP>:8000/phone.html via the port map
+# (e.g. https://192.168.0.101:8000/phone.html). The "Phone:" URL the
+# server prints is the *container's* IP — ignore it, use the host LAN IP.
+#
+# cert.pem / key.pem in this directory are reused (mounted read-only);
+# serve.py auto-selects HTTPS when they are present.
+services:
+  autorunner:
+    image: python:3.12-slim
+    container_name: qrwebrtc-autorunner
+    working_dir: /srv
+    command: ["python", "serve.py"]
+    volumes:
+      - ./:/srv:ro
+    ports:
+      - "8000:8000"
+    restart: unless-stopped

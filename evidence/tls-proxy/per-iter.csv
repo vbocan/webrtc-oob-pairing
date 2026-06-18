@@ -1,0 +1,11 @@
+paired,handshake_ms,ice_gather_laptop_ms,ice_gather_phone_ms,offer_bytes,qr_chars,answer_bytes,answer_b64_chars,audio_attempts,transfer_ok,transfer_kbps,transfer_size,transfer_ms,failure,iter
+True,35814,145,134,53,71,62,83,1,True,890,1048576,1150,,1
+True,6991,134,119,62,83,62,83,1,True,929,1048576,1102,,2
+True,7377,134,139,62,83,62,83,1,True,1157,1048576,885,,3
+True,7184,140,128,62,83,62,83,1,True,1029,1048576,995,,4
+True,7529,119,121,62,83,62,83,1,True,1058,1048576,968,,5
+True,7308,122,133,62,83,62,83,1,True,1526,1048576,671,,6
+True,7296,124,126,62,83,62,83,1,True,1019,1048576,1005,,7
+True,7412,123,131,62,83,62,83,1,True,588,1048576,1741,,8
+True,7270,131,131,62,83,62,83,1,True,1430,1048576,716,,9
+True,7311,152,135,62,83,62,83,1,True,1715,1048576,597,,10

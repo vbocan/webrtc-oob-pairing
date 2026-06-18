@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phone — measurement build</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 32em; margin: 0.5em auto; padding: 0 0.8em; line-height: 1.4; }
+  button { font-size: 1.1em; padding: 0.7em 1em; width: 100%; margin: 0.4em 0; border-radius: 8px; border: 1px solid #444; background: #f8f8f8; }
+  button:disabled { opacity: 0.5; }
+  button.primary { background: #2563eb; color: white; border-color: #1d4ed8; font-weight: 600; }
+  #scanner { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 8px; overflow: hidden; margin: 0.5em 0; }
+  #scanner video { width: 100%; height: 100%; object-fit: cover; }
+  #scanner canvas { display: none; }
+  #status { font-weight: 600; min-height: 1.4em; margin: 0.4em 0; }
+  .log { font-family: ui-monospace, monospace; font-size: 0.8em; background: #fafafa; border: 1px solid #ddd; padding: 0.5em; border-radius: 4px; max-height: 12em; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+  .ok { color: #197a19; font-weight: 600; }
+  .bad { color: #b00; font-weight: 600; }
+  .warn { color: #b86a00; }
+  #transfer { margin-top: 1em; padding: 0.8em; border: 1px solid #ddd; border-radius: 6px; background: #fafafa; }
+  #transfer h4 { margin: 0 0 0.4em; }
+  #rx-progress { width: 100%; height: 1em; }
+  #rx-status { font-family: ui-monospace, monospace; font-size: 0.85em; color: #555; min-height: 1.3em; margin-top: 0.3em; }
+  #rx-result { margin-top: 0.6em; }
+  #rx-result img { max-width: 100%; height: auto; border-radius: 4px; border: 1px solid #ccc; }
+  #rx-result a.download { display: inline-block; padding: 0.5em 0.9em; background: #4a90e2; color: white; border-radius: 6px; text-decoration: none; }
+  #controls { margin-top: 0.6em; padding: 0.5em 0.8em; border: 1px solid #ccc; border-radius: 8px; background: #f4f6fb; font-size: 0.9em; }
+  #controls .row { display: flex; gap: 0.5em; align-items: center; margin: 0.3em 0; flex-wrap: wrap; }
+  #controls button { width: auto; padding: 0.4em 0.8em; font-size: 0.95em; }
+  details.settings { margin-top: 0.6em; }
+  details.settings summary { cursor: pointer; font-weight: 600; font-size: 0.9em; }
+  details.settings label { display: block; font-size: 0.85em; margin-top: 0.5em; }
+  details.settings select, details.settings input[type=range] { width: 100%; font-size: 1em; }
+  #version-tag { font-family: ui-monospace, monospace; font-size: 0.7em; color: #888; font-weight: normal; margin-left: 0.5em; }
+  .hint { color: #666; font-size: 0.85em; }
+</style>
+</head>
+<body>
+<h3>Phone — measurement build <span id="version-tag"></span></h3>
+<p class="hint">Tap <b>Start</b> once (mobile browsers need a gesture to unlock the
+   camera and audio). The phone then scans and <b>re-pairs continuously</b> to
+   match the PC's auto-runner. For a single hand-driven pairing, use the
+   <code>simple-poc</code> build.</p>
+
+<button id="start" class="primary">▶ Start (continuous)</button>
+<button id="stop" disabled>Stop</button>
+
+<div id="scanner" hidden>
+  <video id="video" playsinline muted></video>
+  <canvas id="scan"></canvas>
+</div>
+
+<p id="status">Idle.</p>
+
+<div id="controls">
+  <div class="row">
+    <button id="dl-log">Download JSONL log</button>
+    <span><span id="evt-count">0</span> events recorded</span>
+  </div>
+</div>
+
+<details class="settings">
+  <summary>Audio settings</summary>
+  <label>Protocol
+    <select id="protocol">
+      <option value="AUDIBLE_FAST" selected>Audible Fast (~16 B/s)</option>
+      <option value="AUDIBLE_NORMAL">Audible Normal (slower, more robust)</option>
+      <option value="AUDIBLE_FASTEST">Audible Fastest (fragile)</option>
+    </select>
+  </label>
+  <label>Volume <input id="volume" type="range" min="1" max="100" value="35"></label>
+  <label>Gap between retransmissions (ms)
+    <input id="gap" type="number" min="500" max="10000" value="1500" style="width:6em">
+  </label>
+</details>
+
+<div id="transfer" hidden>
+  <h4>Receiving</h4>
+  <progress id="rx-progress" max="100" value="0"></progress>
+  <div id="rx-status">Waiting for PC to send a file…</div>
+  <div id="rx-result"></div>
+</div>
+
+<h4>Log</h4>
+<div id="log" class="log"></div>
+
+<script src="./vendor/ggwave.js"></script>
+<script type="module">
+import jsQR from './vendor/jsqr.js';
+import { convertTypedArray, initGgwave, protocols } from './ggwave-shim.js';
+import {
+  localToPacket, packetToRemote,
+  bytesToB64url, b64urlToBytes,
+  tryDecodeQwbp, wireConnectionLifecycle,
+  logLocalCandidates, logSelectedPair,
+} from './pair-shared.js';
+import { receiveFile, formatBytes } from './file-transfer.js';
+import { EventLog } from './event-log.js';
+import { VERSION } from './version.js';
+
+const PAIRING_TIMEOUT_MS = 45_000;
+
+document.getElementById('version-tag').textContent = `v${VERSION}`;
+const evt = new EventLog('phone', { version: VERSION });
+
+const $ = (id) => document.getElementById(id);
+const logEl = $('log');
+const status = (msg, cls = '') => { $('status').textContent = msg; $('status').className = cls; };
+const log = (msg, cls = '') => {
+  const line = document.createElement('div');
+  if (cls) line.className = cls;
+  line.textContent = msg;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+};
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+const updateEvtCount = () => { $('evt-count').textContent = evt.count(); };
+const EVENT_NAMES = [
+  'session_start', 'iteration_start',
+  'scan_start', 'qr_scanned',
+  'offer_applied', 'answer_created', 'ice_gathering_complete',
+  'answer_encoded', 'answer_transmit',
+  'ice_connected', 'ice_timeout', 'ice_lost',
+  'manifest_received', 'transfer_progress', 'transfer_complete', 'transfer_failed',
+  'pairing_stopped', 'auto_rescan',
+];
+EVENT_NAMES.forEach(e => evt.addEventListener(e, updateEvtCount));
+updateEvtCount();
+
+let pc = null, dc = null;
+let audioCtx = null, ggwave = null, ggInstance = null, protoMap = null;
+let videoStream = null;
+let scanRAF = 0;
+let txTimer = null;
+let txWaveform = null;
+let txCurrentSource = null;   // live BufferSourceNode (or null)
+let transmitting = false;     // authoritative "chirp loop should continue" flag
+let cancelLifecycle = null;
+let connected = false;
+let scanned = false;
+let lastRejectedQr = null;    // dedup rejected jsQR results
+let lastAcceptedQr = null;    // never re-answer the same offer (would mint a new cert)
+let rescanEnabled = false;    // continuous-measurement loop flag (set by Start)
+
+// QWBP packets after base64url encoding are always >40 chars. Anything
+// shorter that jsQR reports is shadow/lint noise — ignore it cheaply.
+const MIN_QR_CHARS = 40;
+
+async function ensureAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  // Two-step unlock for mobile Chrome: resume() in the startScanner
+  // gesture context, then a 1-sample silent buffer locks the context
+  // as "actively producing audio" so it doesn't auto-suspend during
+  // the multi-second wait between scanner-open and chirp-emit.
+  await audioCtx.resume();
+  const silent = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+  const node = audioCtx.createBufferSource();
+  node.buffer = silent;
+  node.connect(audioCtx.destination);
+  node.start();
+  ({ ggwave, instance: ggInstance } = await initGgwave(audioCtx));
+  protoMap = protocols(ggwave);
+  log(`AudioContext @ ${audioCtx.sampleRate} Hz, state=${audioCtx.state}.`);
+}
+
+async function startScanner() {
+  // Entering continuous-measurement mode: the phone keeps re-pairing
+  // (auto-rescan) until Stop is pressed. This is the autorunner's only
+  // mode; for a single pairing use the simple-poc build.
+  rescanEnabled = true;
+  $('start').disabled = true;
+  $('stop').disabled = false;
+  $('scanner').hidden = false;
+  scanned = false;
+  connected = false;
+  lastRejectedQr = null;
+  // NOTE: iteration is bumped in onQrScanned when we accept a valid
+  // QWBP packet, not here. That keeps phone iter K aligned with PC
+  // iter K even if Start is tapped before the PC's auto-run begins, or
+  // if jsQR returns a bogus empty hit first.
+  evt.record('scan_start');
+
+  // Warm audio on the user gesture so playback later has no startup
+  // latency. Mobile browsers require a gesture to unlock AudioContext.
+  await ensureAudio();
+
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false,
+    });
+  } catch (err) {
+    log(`Camera denied: ${err.message}`, 'bad');
+    stopAll();
+    return;
+  }
+  const v = $('video');
+  v.srcObject = videoStream;
+  await v.play();
+  status('Point at PC QR…');
+  scanLoop();
+}
+
+function scanLoop() {
+  if (!videoStream) return;   // scanner was stopped
+  const v = $('video');
+  const c = $('scan');
+  if (v.videoWidth && !scanned) {
+    c.width = v.videoWidth;
+    c.height = v.videoHeight;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(v, 0, 0, c.width, c.height);
+    const img = ctx.getImageData(0, 0, c.width, c.height);
+    const hit = jsQR(img.data, img.width, img.height);
+    // Filter: jsQR sometimes reports "hits" with empty or extremely
+    // short data on shadows / ambient patterns. Skip those silently.
+    // Also skip a QR we've already rejected this cycle, to avoid log
+    // spam while the same bad code stays in frame.
+    if (hit && hit.data && hit.data.length >= MIN_QR_CHARS
+        && hit.data !== lastRejectedQr && hit.data !== lastAcceptedQr) {
+      scanned = true;
+      log(`QR scanned: ${hit.data.length} chars.`, 'ok');
+      onQrScanned(hit.data).catch(e => {
+        log(`Pairing failed: ${e.message}`, 'bad');
+        console.error(e);
+        scanned = false;
+      });
+    }
+  }
+  scanRAF = requestAnimationFrame(scanLoop);
+}
+
+async function onQrScanned(qrText) {
+  let packet;
+  try { packet = b64urlToBytes(qrText); }
+  catch {
+    evt.record('qr_scanned', { chars: qrText.length, valid: false, reason: 'not-base64url' });
+    log('QR text is not base64url — wrong code?', 'warn');
+    lastRejectedQr = qrText;
+    scanned = false;
+    return;
+  }
+  try { tryDecodeQwbp(packet); }
+  catch (e) {
+    evt.record('qr_scanned', { chars: qrText.length, bytes: packet.length, valid: false, reason: e.message });
+    log(`Ignoring scan: ${e.message}`, 'warn');
+    lastRejectedQr = qrText;
+    scanned = false;
+    return;
+  }
+  // Valid QWBP offer — this is the start of a real pairing cycle.
+  // Remember it so we never answer this same offer twice: a second answer
+  // would carry a fresh DTLS cert that the PC (which already applied our
+  // first answer) cannot match, hanging its DTLS handshake.
+  lastAcceptedQr = qrText;
+  // Bump iteration now so all subsequent events go in the same bucket
+  // as the PC's matching iteration.
+  evt.nextIteration();
+  evt.record('qr_scanned', { chars: qrText.length, bytes: packet.length, valid: true });
+
+  log(`Valid QWBP offer (${packet.length} B). Stopping scanner; building answer.`, 'ok');
+  stopScanner(/*keepAudio=*/true);
+
+  const pairingT0 = performance.now();
+
+  // Fresh DTLS cert per pairing — see laptop.html for the full reasoning.
+  // ICE creds are HKDF-derived from the fingerprint, so a unique cert per
+  // iteration guarantees unique ICE credentials and avoids cross-iteration
+  // STUN demux collisions.
+  const cert = await RTCPeerConnection.generateCertificate({ name: 'ECDSA', namedCurve: 'P-256' });
+  pc = new RTCPeerConnection({ certificates: [cert] });
+  pc.ondatachannel = (ev) => { dc = ev.channel; wireDataChannel(dc); };
+  // Auto-rescan trigger #1: ICE eventually notices the peer is gone.
+  // Reliable but slow (5-30 s on a clean peer-close). Trigger #2 below
+  // — DataChannel.onclose — usually fires first.
+  pc.addEventListener('iceconnectionstatechange', () => {
+    const s = pc?.iceConnectionState;
+    if (connected && (s === 'disconnected' || s === 'failed' || s === 'closed')) {
+      evt.record('ice_lost', { state: s });
+      maybeAutoRescan(`ice:${s}`);
+    }
+  });
+
+  cancelLifecycle = wireConnectionLifecycle(pc, {
+    timeoutMs: PAIRING_TIMEOUT_MS,
+    log, status,
+    onConnected: () => {
+      // NOTE: ICE-connected is NOT "paired" for HKDF-derived ICE creds.
+      // See laptop.html for the full reasoning. We must keep
+      // transmitting the chirp until DataChannel.onopen fires.
+      evt.record('ice_connected', { totalMs: Math.round(performance.now() - pairingT0) });
+      log('(ICE connected; still transmitting until DataChannel opens.)');
+      logSelectedPair(pc, log, evt);
+    },
+    onTimeout: () => {
+      evt.record('ice_timeout', { totalMs: Math.round(performance.now() - pairingT0) });
+      log(`No connection within ${PAIRING_TIMEOUT_MS / 1000}s. Re-pairing…`, 'bad');
+      status('Pairing timed out.', 'bad');
+      stopTransmit();
+      maybeAutoRescan('timeout');
+    },
+  });
+
+  status('Applying offer & gathering ICE…');
+  const { addedOk, addedBad } = await packetToRemote(pc, packet, /*isOffer=*/true);
+  evt.record('offer_applied', { addedOk, addedBad });
+  log(`Remote offer applied. Candidates: ${addedOk} ok, ${addedBad} rejected.`);
+
+  const answer = await pc.createAnswer();
+  evt.record('answer_created', { sdpSize: answer.sdp.length });
+  log('createAnswer OK. Patching ICE creds (HKDF) and gathering…');
+
+  const gatherT0 = performance.now();
+  const { packet: myPacket, candidates } = await localToPacket(pc, 'answer', answer.sdp);
+  evt.record('ice_gathering_complete', {
+    durationMs: Math.round(performance.now() - gatherT0),
+    packetSize: myPacket.length,
+    candidates: candidates.length,
+  });
+  logLocalCandidates(pc, log, evt);
+
+  const audioText = bytesToB64url(myPacket);
+  evt.record('answer_encoded', { packetSize: myPacket.length, b64Chars: audioText.length });
+  log(`Encoded answer: ${myPacket.length} B binary, ${audioText.length} chars base64url.`);
+
+  startTransmitLoop(audioText);
+}
+
+// Trigger one full restart of the scanner while the continuous-measurement
+// loop is enabled. Guarded so it only fires once per lost-connection event.
+// AudioContext is preserved across rescans because mobile Chrome requires a
+// fresh user gesture to create a new one — re-using the existing context
+// dodges that restriction.
+let rescanScheduled = false;
+function maybeAutoRescan(reason) {
+  if (!rescanEnabled) return;
+  if (rescanScheduled) return;
+  rescanScheduled = true;
+  evt.record('auto_rescan', { reason });
+  setTimeout(async () => {
+    stopPairing({ keepAudio: true });
+    await sleep(1200);
+    rescanScheduled = false;
+    if (rescanEnabled) startScanner().catch(e => log(`Auto-rescan failed: ${e.message}`, 'bad'));
+  }, 300);
+}
+
+function wireDataChannel(channel) {
+  const handleOpen = () => {
+    log(`DataChannel "${channel.label}" open.`, 'ok');
+    // Real "paired" event. DTLS succeeded → SCTP up.
+    connected = true;
+    stopTransmit();
+    status('Connected.', 'ok');
+    $('transfer').hidden = false;
+  };
+  // The answerer receives this channel via pc.ondatachannel, and it may
+  // ALREADY be in 'open' state by the time we get here — in which case the
+  // 'open' event has already fired and assigning channel.onopen would never
+  // run. The transfer would still succeed (the message handler below is
+  // attached regardless), but `connected` would stay false and the chirp
+  // loop would never stop. Check readyState and run the open-logic
+  // synchronously if the channel is already open.
+  if (channel.readyState === 'open') handleOpen();
+  else channel.onopen = handleOpen;
+  channel.onclose = () => {
+    log('DataChannel closed.');
+    // Trigger #2 for auto-rescan: SCTP close propagates almost
+    // immediately when the peer goes away, much faster than ICE.
+    if (connected) {
+      evt.record('ice_lost', { state: 'dc_closed' });
+      maybeAutoRescan('dc_close');
+    }
+  };
+  let arrivedAt = 0;
+  let lastReportedPct = -10;
+  receiveFile(channel, {
+    onManifest: (m) => {
+      arrivedAt = performance.now();
+      lastReportedPct = -10;
+      $('rx-progress').value = 0;
+      $('rx-status').textContent = `Receiving ${m.name} (${formatBytes(m.size)}, ${m.mime})…`;
+      $('rx-result').innerHTML = '';
+      evt.record('manifest_received', { name: m.name, size: m.size, mime: m.mime, chunks: m.chunks });
+      log(`Incoming: ${m.name} (${formatBytes(m.size)}, ${m.mime})`);
+    },
+    onProgress: (got, total) => {
+      $('rx-progress').value = total ? (got / total) * 100 : 0;
+      $('rx-status').textContent =
+        `${formatBytes(got)} / ${formatBytes(total)} (${((got/total)*100).toFixed(0)} %)`;
+      const pct = (got / total) * 100;
+      if (pct - lastReportedPct >= 10) {
+        lastReportedPct = pct;
+        evt.record('transfer_progress', { got, total, pct: Math.round(pct) });
+      }
+    },
+    onComplete: (blob, m) => {
+      const durMs = Math.round(performance.now() - arrivedAt);
+      const kbps = Math.round((m.size / 1024) / (durMs / 1000 || 1));
+      $('rx-status').textContent = `Received ${formatBytes(m.size)} in ${(durMs/1000).toFixed(2)}s (${kbps} KB/s).`;
+      evt.record('transfer_complete', { name: m.name, size: m.size, durationMs: durMs, kbps });
+      log(`File received: ${m.name} in ${(durMs/1000).toFixed(2)}s`, 'ok');
+      const url = URL.createObjectURL(blob);
+      const result = $('rx-result');
+      result.innerHTML = '';
+      if (m.mime.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = m.name;
+        result.appendChild(img);
+      }
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = m.name;
+      link.className = 'download';
+      link.textContent = `Save ${m.name}`;
+      result.appendChild(link);
+    },
+    onError: (err) => {
+      evt.record('transfer_failed', { reason: err.message });
+      $('rx-status').textContent = `Receive failed: ${err.message}`;
+      log(`Receive failed: ${err.message}`, 'bad');
+    },
+  });
+}
+
+// Transmit the answer EXACTLY ONCE — no "resounding".
+//
+// The old design retransmitted the chirp every `gap` ms until ICE
+// connected. Each chirp is ~6 s long, so several of them piled up in the
+// air and lingered into the NEXT iteration's listening window, where the
+// PC would decode a stale chirp and bind its offer to a DTLS cert whose
+// peer had already moved on — hanging the handshake at "connecting".
+//
+// In good acoustic conditions a single transmission is reliably decoded:
+// the PC has already rendered its QR and started its mic by the time the
+// phone scans and answers, so the one chirp lands. If no connection forms
+// within a grace window we give up and wait for the PC's NEXT offer (a new
+// QR). We deliberately never re-answer the SAME offer — lastAcceptedQr
+// blocks that — because a second answer would carry a fresh cert the PC
+// cannot match.
+function startTransmitLoop(text) {
+  const protoName = $('protocol').value;
+  const proto = protoMap[protoName];
+  const volume = parseInt($('volume').value, 10);
+
+  // ggwave.encode() returns a view into WASM linear memory; that view goes
+  // stale if WASM memory grows or GCs. Convert to a heap copy NOW.
+  const raw = ggwave.encode(ggInstance, text, proto, volume);
+  txWaveform = convertTypedArray(raw, Float32Array);
+  const waveformSec = txWaveform.length / audioCtx.sampleRate;
+  log(`Waveform: ${txWaveform.length} Float32 samples (≈${waveformSec.toFixed(1)} s).`);
+  status('Transmitting answer once; waiting for connection…');
+
+  transmitting = true;
+  // Brief settle before the single chirp: the PC starts its mic just after
+  // rendering the QR, and ggwave's sync preamble sits at the very start of
+  // the waveform. Since there is no retransmit to cover a clipped preamble,
+  // wait a beat so the PC is definitely capturing when the chirp begins.
+  setTimeout(() => playChirpOnce(protoName, volume, waveformSec), 400);
+
+  // Grace window = chirp length + slack for decode + ICE + DTLS. If still
+  // not connected when it expires, give up this offer and re-scan.
+  const graceMs = 400 + Math.round(waveformSec * 1000) + 9000;
+  txTimer = setTimeout(() => {
+    if (connected || !transmitting) return;
+    log('No connection after one transmission; waiting for a new QR.', 'warn');
+    stopTransmit();
+    maybeAutoRescan('tx-grace');
+  }, graceMs);
+}
+
+async function playChirpOnce(protoName, volume, waveformSec) {
+  if (audioCtx.state === 'suspended') {
+    log('AudioContext suspended; calling resume()…', 'warn');
+    await audioCtx.resume();
+    log(`AudioContext state after resume: ${audioCtx.state}`,
+        audioCtx.state === 'running' ? 'ok' : 'bad');
+  }
+  if (!transmitting || connected) return;   // state may have changed during await
+  evt.record('answer_transmit', { attempt: 1, protocol: protoName, volume, waveformSec });
+  const buffer = audioCtx.createBuffer(1, txWaveform.length, audioCtx.sampleRate);
+  buffer.getChannelData(0).set(txWaveform);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  src.connect(audioCtx.destination);
+  txCurrentSource = src;
+  src.start();
+  src.onended = () => { if (txCurrentSource === src) txCurrentSource = null; };
+}
+
+function stopTransmit() {
+  transmitting = false;
+  if (txTimer) { clearTimeout(txTimer); txTimer = null; }
+  if (txCurrentSource) {
+    // Cut any chirp still playing.
+    try { txCurrentSource.stop(); } catch { /* already stopped */ }
+    try { txCurrentSource.disconnect(); } catch {}
+    txCurrentSource = null;
+  }
+  txWaveform = null;
+}
+
+function stopScanner(keepAudio = false) {
+  if (scanRAF) { cancelAnimationFrame(scanRAF); scanRAF = 0; }
+  if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+  $('scanner').hidden = true;
+  if (!keepAudio && audioCtx) { audioCtx.close(); audioCtx = null; ggwave = null; }
+}
+
+// Tear down the current pairing only (used between auto-rescan cycles).
+// Does NOT clear rescanEnabled, so the measurement loop continues.
+function stopPairing({ keepAudio = false } = {}) {
+  cancelLifecycle?.();
+  cancelLifecycle = null;
+  stopScanner(keepAudio);
+  stopTransmit();
+  if (pc) { pc.close(); pc = null; dc = null; }
+  connected = false;
+  $('transfer').hidden = true;
+  $('rx-progress').value = 0;
+  $('rx-result').innerHTML = '';
+  $('rx-status').textContent = 'Waiting for PC to send a file…';
+  evt.record('pairing_stopped', { keepAudio });
+}
+
+// Full stop: tear down the pairing AND exit the continuous-measurement
+// loop. Used by the Stop button and on fatal errors.
+function stopAll() {
+  rescanEnabled = false;
+  lastAcceptedQr = null;   // fresh Start should be able to re-answer any offer
+  stopPairing();
+  $('start').disabled = false;
+  $('stop').disabled = true;
+  status('Stopped.');
+}
+
+$('start').addEventListener('click', () => startScanner().catch(e => {
+  console.error(e); log(`ERROR: ${e.message}`, 'bad'); stopAll();
+}));
+$('stop').addEventListener('click', stopAll);
+
+$('dl-log').addEventListener('click', () => evt.download());
+</script>
+</body>
+</html>

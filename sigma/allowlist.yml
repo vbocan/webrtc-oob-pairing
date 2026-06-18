@@ -1,0 +1,45 @@
+# Corporate VoIP / collaboration origin allowlist for the detection rule.
+#
+# This is the F4 input from telemetry-pipeline.md: origins on which a
+# WebRTC DataChannel + microphone capture is expected and benign. The
+# rule in rule.yml fires only when the initiating tab_origin is NOT on
+# this list. Keep rule.yml's `voip_origin_allowlist` block in sync with
+# this file (the rule inlines the list because Sigma cannot import an
+# external file; this document is the canonical, documented source).
+#
+# Tuning guidance (see the accompanying paper): an organisation deploying the
+# rule replaces this with its own sanctioned platforms. The narrower the
+# list, the higher the detection coverage but the higher the chance a
+# legitimate but unlisted browser-WebRTC app triggers an alert; the wider
+# the list, the lower the false-positive risk but the larger the blind
+# spot an adversary could hide in by hosting on an allowlisted origin.
+# The list below is the benchmark set referenced by the structural FP
+# argument (Teams, Meet, Zoom, Whereby).
+
+voip_origins:
+  microsoft_teams:
+    - 'https://teams.microsoft.com'
+    - 'https://*.teams.microsoft.com'
+    - 'https://*.teams.live.com'
+  google_meet:
+    - 'https://meet.google.com'
+  zoom:
+    - 'https://*.zoom.us'
+    - 'https://app.zoom.us'
+  whereby:
+    - 'https://whereby.com'
+    - 'https://*.whereby.com'
+
+# Origins an org commonly adds after observing its own traffic:
+#   - sanctioned internal collaboration tools (e.g. https://collab.corp.example)
+#   - Webex (https://*.webex.com), Jitsi (self-hosted origin), Slack huddles
+# Document every addition; each one widens the adversary's hiding space.
+notes:
+  benchmark_set: [microsoft_teams, google_meet, zoom, whereby]
+  rationale: >
+    These four platforms are the legitimate-WebRTC reference set the paper
+    uses for the structural false-positive argument. Each runs on a stable,
+    well-known origin and negotiates media tracks rather than a DataChannel,
+    so allowlisting their origins removes the dominant source of benign
+    microphone+WebRTC activity without masking the characterised surface,
+    which uses a DataChannel from an unmanaged origin.
