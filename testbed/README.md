@@ -6,7 +6,7 @@ host, and `docker compose down` removes every trace.
 
 | Folder | Scenario | What it brings up |
 |---|---|---|
-| [`tls-proxy/`](tls-proxy/) | **C4** (TLS-intercepting proxy) | mitmproxy |
+| [`tls-proxy/`](tls-proxy/) | **E1** (TLS-intercepting proxy) | mitmproxy |
 | [`m2-browser-policy/`](m2-browser-policy/) | **M2** (WebRTC disabled by managed-browser policy) | a throwaway Dockerized Firefox with `media.peerconnection.enabled=false` locked |
 
 The two rigs are split by concern: `tls-proxy/` imposes a control at the
@@ -14,7 +14,7 @@ The two rigs are split by concern: `tls-proxy/` imposes a control at the
 layer** and needs a different setup (noVNC GUI, policy mount). Keeping them
 apart avoids conflating the two and lets each be torn down independently.
 
-> **C5 (DNS restriction)** needs no rig — it is reproduced with the browser
+> **E2 (DNS restriction)** needs no rig — it is reproduced with the browser
 > flag `--host-resolver-rules`, not Docker. See
 > [`../evidence/dns-denied/conditions.md`](../evidence/dns-denied/conditions.md).
 

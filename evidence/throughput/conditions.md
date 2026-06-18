@@ -1,4 +1,4 @@
-# T0 throughput sweep — run conditions
+# B2 throughput sweep — run conditions
 
 Recorded alongside the data per the run protocol in the top-level
 `README.md`. These are the "representative co-present conditions" the paper

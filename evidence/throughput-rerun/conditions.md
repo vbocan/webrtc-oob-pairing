@@ -1,9 +1,9 @@
-# T0b throughput sweep (rerun) — run conditions
+# B2b throughput sweep (rerun) — run conditions
 
 A **second** steady-state throughput sweep, independent of the committed
 `evidence/throughput/` session. Same artifact build (**0.4.0**), different
 date and a different LAN subnet, so it serves as a corroborating sample
-for the §9 throughput figure — not a re-baseline (the original T0 is
+for the §9 throughput figure — not a re-baseline (the original B2 is
 already 0.4.0; see `evidence/throughput/conditions.md`).
 
 ## Date / artifact
@@ -16,7 +16,7 @@ already 0.4.0; see `evidence/throughput/conditions.md`).
 ## Network
 
 - Subnet: `192.168.1.0/24` — workstation `192.168.1.100`, phone
-  `192.168.1.179`. (Differs from the original T0 session, which was on
+  `192.168.1.179`. (Differs from the original B2 session, which was on
   `192.168.0.0/24`.)
 - Wi-Fi band / AP / RSSI: **TODO — confirm (author)**; not derivable from
   the logs.
@@ -35,7 +35,7 @@ already 0.4.0; see `evidence/throughput/conditions.md`).
 | Workstation (sender) | Windows 11 x64 | Edge **149** | 149 |
 | Phone (receiver) | Android (Edge for Android) | Edge for Android **148** | 148 |
 
-> UA caveat (same as T0): Android UA reduction freezes the OS token at
+> UA caveat (same as B2): Android UA reduction freezes the OS token at
 > "10 (K)"; the real OS version is higher.
 
 ## Transfer settings

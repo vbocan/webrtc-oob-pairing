@@ -1,11 +1,11 @@
-# C4 — proxy-side evidence
+# E1 — proxy-side evidence
 
-The headline of C4 is a *negative* result at the proxy: with a
+The headline of E1 is a *negative* result at the proxy: with a
 TLS-intercepting forward proxy verifiably live in front of the
 workstation, the pairing and file transfer are invisible to it. This
 file records that evidence. It is derived from the raw mitmproxy capture
 (`flows`, ~158 MB, **not committed** — gitignored as binary telemetry
-noise; regenerate by re-running C4, or read a local copy with the
+noise; regenerate by re-running E1, or read a local copy with the
 command below).
 
 ## The proxy was live and decrypting (positive control)

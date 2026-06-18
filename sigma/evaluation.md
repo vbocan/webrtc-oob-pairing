@@ -26,14 +26,14 @@ non-VoIP-origin `datachannel_open`, within 2 min, per host+process).
 
 | Scenario | Pairings | Telemetry present | Source |
 |---|---|---|---|
-| C0 baseline | 10/10 | JSONL ✓ (`evidence/baseline`) | corroborating |
-| C4 TLS proxy | 10/10 | JSONL ✓ (`evidence/tls-proxy`) | corroborating |
-| C5 DNS denied | 5/5 | JSONL ✓ (`evidence/dns-denied`) + webrtc-internals dump | both |
+| B1 baseline | 10/10 | JSONL ✓ (`evidence/baseline`) | corroborating |
+| E1 TLS proxy | 10/10 | JSONL ✓ (`evidence/tls-proxy`) | corroborating |
+| E2 DNS denied | 5/5 | JSONL ✓ (`evidence/dns-denied`) + webrtc-internals dump | both |
 
 ### Result
 
-**The rule fired on 25 / 25 successful pairings (100 %): C0 10/10, C4
-10/10, C5 5/5.** Every pairing's telemetry carried F1 (`getUserMedia`
+**The rule fired on 25 / 25 successful pairings (100 %): B1 10/10, E1
+10/10, E2 5/5.** Every pairing's telemetry carried F1 (`getUserMedia`
 audio) and F3 (`datachannel_open`) on the artifact's non-allowlisted
 origin (`https://localhost:8000`), correlatable within the two-minute
 window, so the temporal correlation matched in each case. The origin

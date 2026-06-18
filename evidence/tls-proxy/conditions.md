@@ -1,6 +1,6 @@
-# C4 — run conditions
+# E1 — run conditions
 
-Companion to `evidence/throughput/conditions.md`, for the C4
+Companion to `evidence/throughput/conditions.md`, for the E1
 (TLS-intercepting forward proxy) scenario.
 
 ## Date / artifact
@@ -16,7 +16,7 @@ Companion to `evidence/throughput/conditions.md`, for the C4
 
 - Wi-Fi band **5 GHz**, AP **TP-Link Archer C2**.
 - Workstation `192.168.0.101`; phone `192.168.0.102` (different DHCP
-  lease than the T0 session, which was `.103`).
+  lease than the B2 session, which was `.103`).
 
 ## Control under test (Docker, nothing installed on host)
 
@@ -50,12 +50,12 @@ Companion to `evidence/throughput/conditions.md`, for the C4
 
 - **10 / 10 paired, 10 / 10 transferred — through the active proxy.**
 - Handshake median 7.3 s (mean inflated by the iter-1 cold start).
-- Throughput (1 MB) median ~1.0 MB/s — **lower than T0's 7.2 MB/s**, but
+- Throughput (1 MB) median ~1.0 MB/s — **lower than B2's 7.2 MB/s**, but
   the path is identical (host↔host LAN), so the proxy is not in the data
   path. The likely cause is contention: the throwaway profile generated
   1104 background HTTP requests (~158 MB of Edge first-run telemetry)
-  over the same Wi-Fi during the run. **Throughput is T0's measurement,
-  not C4's** — C4 measures establishment + proxy-blindness, both
+  over the same Wi-Fi during the run. **Throughput is B2's measurement,
+  not E1's** — E1 measures establishment + proxy-blindness, both
   confirmed. For later C/M scenarios, suppress the profile's telemetry
   (or warm the profile) so it doesn't contend.
 - Proxy-side evidence (1104 flows incl. example.com; 0 flows to the

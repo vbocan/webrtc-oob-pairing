@@ -107,7 +107,7 @@ corroborating second source for the detection-rate measurement so the
 result does not depend on a single instrumentation path. They are *not*
 a production telemetry source — they exist because the page instruments
 itself — but they prove the four facts are jointly emitted in every
-successful pairing already captured (C0, C4, and C5 once run).
+successful pairing already captured (B1, E1, and E2 once run).
 
 ---
 

@@ -2,7 +2,7 @@
 
 Usage:
     python analyze.py laptop.jsonl phone.jsonl
-    python analyze.py --scenario C0 laptop.jsonl phone.jsonl
+    python analyze.py --scenario B1 laptop.jsonl phone.jsonl
 
 Reads the structured events emitted by the instrumented pairing pages,
 groups by `iteration`, and prints a table + summary statistics suitable

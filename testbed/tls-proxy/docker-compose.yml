@@ -1,4 +1,4 @@
-# TLS-intercepting forward proxy — scenario C4.
+# TLS-intercepting forward proxy — scenario E1.
 #
 #   docker compose up -d     # bring up mitmproxy
 #   docker compose down      # tear it down

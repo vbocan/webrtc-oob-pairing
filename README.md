@@ -32,7 +32,7 @@ Everything needed to re-run the experiments and re-derive the reported numbers i
 │                      analysis/analyze.py reduces a run to per-iteration metrics;
 │                      third-party libs vendored under autorunner/vendor/ (self-contained)
 ├── testbed/           Docker rigs (see testbed/README.md): tls-proxy/
-│                      (mitmproxy for C4) and m2-browser-policy/
+│                      (mitmproxy for E1) and m2-browser-policy/
 │                      (a throwaway Dockerized Firefox)
 │
 ├── sigma/             detection rule + evaluation (read these directly):
@@ -45,11 +45,11 @@ Everything needed to re-run the experiments and re-derive the reported numbers i
 └── evidence/          captured measurement data, one folder per scenario; each holds
     │                  the raw JSONL from both devices, per-iter.csv, and conditions.md
     │                  (exact hardware/network/version/result for that run)
-    ├── baseline/          C0 — open-LAN baseline (10/10 paired)
-    ├── throughput/        T0 — DataChannel goodput sweep   (+ throughput-rerun/)
-    ├── tls-proxy/         C4 — establishes through a TLS-intercepting proxy (10/10)
+    ├── baseline/          B1 — open-LAN baseline (10/10 paired)
+    ├── throughput/        B2 — DataChannel goodput sweep   (+ throughput-rerun/)
+    ├── tls-proxy/         E1 — establishes through a TLS-intercepting proxy (10/10)
     │                          + proxy-evidence.md (curated mitmproxy flows)
-    ├── dns-denied/        C5 — establishes with all external DNS denied (5/5)
+    ├── dns-denied/        E2 — establishes with all external DNS denied (5/5)
     ├── wifi-isolation/    M1 — blocked when no LAN path exists (0/5)
     │                          + FAILED-same-subnet.md (why a guest-net toggle is not enough)
     ├── browser-policy/    M2 — blocked when WebRTC disabled by policy (0/5)
@@ -95,20 +95,22 @@ Prints a per-iteration table, summary statistics, and (for size sweeps) a throug
 
 All scenarios use the measurement build above; only the *condition* and the expected *outcome* differ. Exact run conditions and results are in each folder's `conditions.md`.
 
+Scenario codes group by outcome class: **B** = baseline/characterization, **E** = egress surface demonstrated (a control is present, pairing still succeeds), **M** = mitigation effective (pairing is blocked).
+
 | Scenario (folder) | Condition imposed | How | Result |
 |---|---|---|---|
-| **C0** `baseline/` | none (open LAN, defaults) | run as-is, N=10 @ 100 kB | 10/10 paired |
-| **T0** `throughput/` (+ `-rerun/`) | none; sweep payload sizes | Test file(s) = `100,1024,10240`, N=10 each | ~6–7 MB/s steady state |
-| **C4** `tls-proxy/` | TLS-intercepting proxy in front of the workstation | mitmproxy in Docker (`testbed/tls-proxy`); launch a throwaway browser with `--proxy-server=127.0.0.1:8080 --ignore-certificate-errors` | 10/10 **through** the proxy; **0** flows to the peer (`proxy-evidence.md`) |
-| **C5** `dns-denied/` | workstation browser cannot resolve any external name | serve from Docker (`autorunner`); launch a throwaway browser with `--host-resolver-rules="MAP * ~NOTFOUND, EXCLUDE localhost"`; confirm `example.com` fails | 5/5 paired with DNS denied (host↔host, no name resolved) |
+| **B1** `baseline/` | none (open LAN, defaults) | run as-is, N=10 @ 100 kB | 10/10 paired |
+| **B2** `throughput/` (+ `-rerun/`) | none; sweep payload sizes | Test file(s) = `100,1024,10240`, N=10 each | ~6–7 MB/s steady state |
+| **E1** `tls-proxy/` | TLS-intercepting proxy in front of the workstation | mitmproxy in Docker (`testbed/tls-proxy`); launch a throwaway browser with `--proxy-server=127.0.0.1:8080 --ignore-certificate-errors` | 10/10 **through** the proxy; **0** flows to the peer (`proxy-evidence.md`) |
+| **E2** `dns-denied/` | workstation browser cannot resolve any external name | serve from Docker (`autorunner`); launch a throwaway browser with `--host-resolver-rules="MAP * ~NOTFOUND, EXCLUDE localhost"`; confirm `example.com` fails | 5/5 paired with DNS denied (host↔host, no name resolved) |
 | **M1** `wifi-isolation/` | phone has **no LAN path** to the workstation | put the phone on a network with no route to any workstation IP (cellular, or true AP/station isolation, or a separate firewalled subnet). **First verify** the workstation page is unreachable from the phone | 0/5 — bootstrap succeeds, ICE finds no pair |
 | **M2** `browser-policy/` | WebRTC disabled by managed-browser policy | throwaway Dockerized Firefox with `media.peerconnection.enabled=false` locked (`testbed/m2-browser-policy/`) | 0/5 — `RTCPeerConnection` construction refused |
 
 Notes that matter for faithful reproduction:
 
 - **M1:** a consumer "guest network + block-local-access" toggle does **not** isolate if the guest SSID is bridged to the workstation's subnet — the channel establishes normally. Use true station isolation or a separate subnet. See `evidence/wifi-isolation/FAILED-same-subnet.md`.
-- **C5/M2** need no live phone interaction beyond a normal pairing: C5 is a normal pairing with DNS denied; M2 fails at offer creation before the mic or phone are involved, so it runs headless in the container.
-- The vendored libraries (`autorunner/vendor/`) let the pages load with zero external DNS, which is what makes the C5 browser-flag method clean.
+- **E2/M2** need no live phone interaction beyond a normal pairing: E2 is a normal pairing with DNS denied; M2 fails at offer creation before the mic or phone are involved, so it runs headless in the container.
+- The vendored libraries (`autorunner/vendor/`) let the pages load with zero external DNS, which is what makes the E2 browser-flag method clean.
 
 ## The Detection Rule
 

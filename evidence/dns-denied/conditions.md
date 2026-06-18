@@ -1,6 +1,6 @@
-# C5 — run conditions
+# E2 — run conditions
 
-Companion to `evidence/throughput/conditions.md`, for the C5 (external DNS
+Companion to `evidence/throughput/conditions.md`, for the E2 (external DNS
 denied) control scenario. **Channel established with all external DNS
 denied: 5/5.**
 
@@ -24,7 +24,7 @@ denied: 5/5.**
   `https://localhost:8000`); nothing installed on the host.
 - **DNS-denial evidence:** `dns-denied.png` (present) — `https://example.com`
   failing with `DNS_PROBE_FINISHED_NXDOMAIN` ("can't reach this page") in
-  the same browser during the run window. This is the C5 evidence: the
+  the same browser during the run window. This is the E2 evidence: the
   workstation browser could resolve no external name, yet pairing still
   ran 5/5.
 
@@ -50,7 +50,7 @@ denied: 5/5.**
   cold start at 16.7 s; iters 2–5 cluster at ~6.4 s).
 - One audio chirp sufficed each time. Throughput median ~2.0 MB/s at 1 MB
   (this run is establishment + DNS-independence, not a throughput study;
-  see T0/T0b for goodput).
+  see B2/B2b for goodput).
 - Full per-iteration metrics in `per-iter.csv`.
 
 ## Significance

@@ -42,7 +42,7 @@ workstation-only demonstration; `phone.jsonl` is intentionally empty.
 
 ## Fidelity note for the paper
 
-The other runs (C0/T0/C4/M1) used Edge/Chrome on Windows; M2 here is
+The other runs (B1/B2/E1/M1) used Edge/Chrome on Windows; M2 here is
 realised with **Firefox** enterprise policy because it provides the
 cleanest, documented WebRTC kill-switch
 (`media.peerconnection.enabled=false`). The §7 M2 row / §6 prose should
