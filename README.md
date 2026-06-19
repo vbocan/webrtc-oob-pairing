@@ -137,7 +137,7 @@ The corresponding paper citation will be added here on acceptance.
 
 Code and data are licensed under the **MIT License** — see [`LICENSE`](LICENSE). The accompanying paper text and figures are licensed separately (CC-BY at publication).
 
-Copyright © 2026 **Valer BOCAN, PhD, CSSLP** — Department of Computer and Information Technology, Politehnica University of Timișoara.
+Copyright © 2026 **[Valer BOCAN](https://www.bocan.ro), PhD, CSSLP** — Department of Computer and Information Technology, Politehnica University of Timișoara.
 
 ## Author & Contact
 
