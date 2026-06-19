@@ -19,6 +19,25 @@ Everything needed to re-run the experiments and re-derive the reported numbers i
 
 > **Scope and intent.** This is defensive-security research, built entirely from public, intended-purpose browser APIs and existing open-source components. It is **not** a browser vulnerability and there is nothing to patch — the countermeasures are deployment-side and are documented below. Released for defensive research, security education, and reproducible evaluation; **not** as an exfiltration tool.
 
+## ▶ Try the pairing — in your browser, no install
+
+The quickest way to see the mechanism is the **live demo** on GitHub Pages,
+served over HTTPS so there is no certificate or local server to set up. You
+need a laptop **and** a phone on the same Wi-Fi:
+
+### [▶ Open the live demo →](https://vbocan.github.io/webrtc-oob-pairing/simple-poc/)
+
+1. **Laptop:** open the link, pick a microphone, and click **Start pairing** — a QR code appears.
+2. **Phone:** open the same link, choose the **phone** role, tap **Start scanner** (grant the camera), and aim it at the laptop's QR code.
+3. The phone plays a brief chirp; within ~10 seconds both screens show **Connected**.
+4. Click any of the five sample photos on the laptop to send it to the phone — peer-to-peer, with no server in the path.
+
+> **What this shows — and what it doesn't.** This is a *benign mechanism demonstration*: it pairs **two of your own devices** and transfers only **public-domain sample images** (or a file you choose), never real data. It reproduces the QR + acoustic + WebRTC **bootstrap**. The paper's *findings* — invisibility to a TLS-intercepting proxy, establishment with external DNS sinkholed, the Sigma detection rate, and the mitigations — are reproduced separately via [`autorunner/`](autorunner/) and [`testbed/`](testbed/), with the recorded data under [`evidence/`](evidence/).
+
+If the two devices cannot reach each other on the LAN, the DataChannel never forms — which is exactly the **Wi-Fi client isolation** mitigation (M1) from the paper. The demo uses only standard browser APIs, and the microphone and camera are granted in your own browser session.
+
+> **Prefer to run it locally?** See the [Quick Start](#quick-start) below (`simple-poc/` over an HTTPS dev server).
+
 ## Repository Layout
 
 ```
