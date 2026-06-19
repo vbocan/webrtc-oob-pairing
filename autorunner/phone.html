@@ -40,7 +40,7 @@
 <p class="hint">Tap <b>Start</b> once (mobile browsers need a gesture to unlock the
    camera and audio). The phone then scans and <b>re-pairs continuously</b> to
    match the PC's auto-runner. For a single hand-driven pairing, use the
-   <code>simple-poc</code> build.</p>
+   <code>poc</code> build.</p>
 
 <button id="start" class="primary">▶ Start (continuous)</button>
 <button id="stop" disabled>Stop</button>
@@ -168,7 +168,7 @@ async function ensureAudio() {
 async function startScanner() {
   // Entering continuous-measurement mode: the phone keeps re-pairing
   // (auto-rescan) until Stop is pressed. This is the autorunner's only
-  // mode; for a single pairing use the simple-poc build.
+  // mode; for a single pairing use the poc build.
   rescanEnabled = true;
   $('start').disabled = true;
   $('stop').disabled = false;

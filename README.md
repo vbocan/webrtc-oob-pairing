@@ -7,7 +7,7 @@
 [![Sigma](https://img.shields.io/badge/Sigma-detection%20rule-green)](https://sigmahq.io/)
 [![Artifact](https://img.shields.io/badge/artifact-reproducible-brightgreen)](#reproducing-the-scenarios)
 
-![WebRTC out-of-band pairing: a laptop sends a QR offer, the phone replies via an audible chirp](banner.svg)
+![Look, Listen, Leak — out-of-band WebRTC pairing as an enterprise egress surface](graphical-abstract.png)
 
 *Out-of-band signaling: the workstation renders the WebRTC offer as a QR code; the phone answers over an audible chirp. No external signaling server is involved.*
 
@@ -19,13 +19,13 @@ Everything needed to re-run the experiments and re-derive the reported numbers i
 
 > **Scope and intent.** This is defensive-security research, built entirely from public, intended-purpose browser APIs and existing open-source components. It is **not** a browser vulnerability and there is nothing to patch — the countermeasures are deployment-side and are documented below. Released for defensive research, security education, and reproducible evaluation; **not** as an exfiltration tool.
 
-## ▶ Try the pairing — in your browser, no install
+## ▶ Live Demo — in your browser, no install
 
 The quickest way to see the mechanism is the **live demo** on GitHub Pages,
 served over HTTPS so there is no certificate or local server to set up. You
 need a laptop **and** a phone on the same Wi-Fi:
 
-### [▶ Open the live demo →](https://vbocan.github.io/webrtc-oob-pairing/simple-poc/)
+### [▶ Open the live demo →](https://vbocan.github.io/webrtc-oob-pairing/poc/)
 
 1. **Laptop:** open the link, pick a microphone, and click **Start pairing** — a QR code appears.
 2. **Phone:** open the same link, choose the **phone** role, tap **Start scanner** (grant the camera), and aim it at the laptop's QR code.
@@ -36,7 +36,7 @@ need a laptop **and** a phone on the same Wi-Fi:
 
 If the two devices cannot reach each other on the LAN, the DataChannel never forms — which is exactly the **Wi-Fi client isolation** mitigation (M1) from the paper. The demo uses only standard browser APIs, and the microphone and camera are granted in your own browser session.
 
-> **Prefer to run it locally?** See the [Quick Start](#quick-start) below (`simple-poc/` over an HTTPS dev server).
+> **Prefer to run it locally?** See the [Quick Start](#quick-start) below (`poc/` over an HTTPS dev server).
 
 ## Repository Layout
 
@@ -44,9 +44,9 @@ If the two devices cannot reach each other on the LAN, the DataChannel never for
 .
 ├── README.md          this file — the single source of operational knowledge
 ├── LICENSE            MIT
-├── banner.svg
+├── graphical-abstract.png
 │
-├── simple-poc/        polished demonstration build (full UI; for the walkthrough)
+├── poc/               polished demonstration build (full UI; for the walkthrough)
 ├── autorunner/        instrumented measurement build (JSONL logs + analyzer);
 │                      analysis/analyze.py reduces a run to per-iteration metrics;
 │                      third-party libs vendored under autorunner/vendor/ (self-contained)
@@ -80,7 +80,7 @@ If the two devices cannot reach each other on the LAN, the DataChannel never for
 ### Demo (for the walkthrough / screenshots)
 
 ```sh
-cd simple-poc && pip install cryptography && python make_cert.py && python serve.py
+cd poc && pip install cryptography && python make_cert.py && python serve.py
 ```
 
 Open the workstation URL it prints (`laptop.html`) and the phone URL (`phone.html`) on a co-present phone; scan the QR, let the phone chirp back, and the DataChannel forms. This build keeps the connection open and has no measurement scaffolding.
@@ -173,6 +173,8 @@ The corresponding paper citation will be added here on acceptance.
 ## License
 
 Code and data are licensed under the **MIT License** — see [`LICENSE`](LICENSE). The accompanying paper text and figures are licensed separately (CC-BY at publication).
+
+Copyright © 2026 **Valer BOCAN, PhD, CSSLP** — Department of Computer and Information Technology, Politehnica University of Timișoara.
 
 ## Author & Contact
 
