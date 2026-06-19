@@ -19,7 +19,7 @@ Everything needed to re-run the experiments and re-derive the reported numbers i
 
 > **Scope and intent.** This is defensive-security research, built entirely from public, intended-purpose browser APIs and existing open-source components. It is **not** a browser vulnerability and there is nothing to patch — the countermeasures are deployment-side and are documented below. Released for defensive research, security education, and reproducible evaluation; **not** as an exfiltration tool.
 
-## ▶ Live Demo — in your browser, no install
+## Live Demo — in your browser, no install
 
 The quickest way to see the mechanism is the **live demo** on GitHub Pages,
 served over HTTPS so there is no certificate or local server to set up. You
@@ -37,43 +37,6 @@ need a laptop **and** a phone on the same Wi-Fi:
 If the two devices cannot reach each other on the LAN, the DataChannel never forms — which is exactly the **Wi-Fi client isolation** mitigation (M1) from the paper. The demo uses only standard browser APIs, and the microphone and camera are granted in your own browser session.
 
 > **Prefer to run it locally?** See the [Quick Start](#quick-start) below (`poc/` over an HTTPS dev server).
-
-## Repository Layout
-
-```
-.
-├── README.md          this file — the single source of operational knowledge
-├── LICENSE            MIT
-├── graphical-abstract.png
-│
-├── poc/               polished demonstration build (full UI; for the walkthrough)
-├── autorunner/        instrumented measurement build (JSONL logs + analyzer);
-│                      analysis/analyze.py reduces a run to per-iteration metrics;
-│                      third-party libs vendored under autorunner/vendor/ (self-contained)
-├── testbed/           Docker rigs (see testbed/README.md): tls-proxy/
-│                      (mitmproxy for E1) and m2-browser-policy/
-│                      (a throwaway Dockerized Firefox)
-│
-├── sigma/             detection rule + evaluation (read these directly):
-│   ├── rule.yml            the Sigma rule (2 base rules + temporal correlation)
-│   ├── allowlist.yml       sanctioned VoIP origins (the one operator-tuned knob)
-│   ├── telemetry-pipeline.md   what must be logged, and which sources supply it
-│   ├── evaluation.md       detection rate (25/25) + structural false-positive argument
-│   └── *.py                projection + reference-matcher scripts
-│
-└── evidence/          captured measurement data, one folder per scenario; each holds
-    │                  the raw JSONL from both devices, per-iter.csv, and conditions.md
-    │                  (exact hardware/network/version/result for that run)
-    ├── baseline/          B1 — open-LAN baseline (10/10 paired)
-    ├── throughput/        B2 — DataChannel goodput sweep   (+ throughput-rerun/)
-    ├── tls-proxy/         E1 — establishes through a TLS-intercepting proxy (10/10)
-    │                          + proxy-evidence.md (curated mitmproxy flows)
-    ├── dns-denied/        E2 — establishes with all external DNS denied (5/5)
-    ├── wifi-isolation/    M1 — blocked when no LAN path exists (0/5)
-    │                          + FAILED-same-subnet.md (why a guest-net toggle is not enough)
-    ├── browser-policy/    M2 — blocked when WebRTC disabled by policy (0/5)
-    └── sigma-telemetry/   webrtc-internals dump for the detection-rate measurement
-```
 
 ## Quick Start
 
