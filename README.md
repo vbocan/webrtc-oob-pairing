@@ -1,4 +1,4 @@
-# WebRTC Out-of-Band Pairing — Reproducibility Artifact
+# WebRTC Out-of-Band Pairing - Reproducibility Artifact
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -7,36 +7,28 @@
 [![Sigma](https://img.shields.io/badge/Sigma-detection%20rule-green)](https://sigmahq.io/)
 [![Artifact](https://img.shields.io/badge/artifact-reproducible-brightgreen)](#reproducing-the-scenarios)
 
-![Look, Listen, Leak — out-of-band WebRTC pairing as an enterprise egress surface](graphical-abstract.png)
+![Look, Listen, Leak - out-of-band WebRTC pairing as an enterprise egress surface](graphical-abstract.png)
 
 *Out-of-band signaling: the workstation renders the WebRTC offer as a QR code; the phone answers over an audible chirp. No external signaling server is involved.*
 
 ## Overview
 
-This repository is the reproducibility artifact for a defensive-security study of an **out-of-band signaling technique** that establishes a WebRTC DataChannel between two co-present devices — a workstation and a smartphone — using a visual (QR) channel in one direction and an acoustic channel in the other. The study characterises the resulting enterprise egress surface, ships a deployable detection signature (a [Sigma](https://sigmahq.io/) rule), and presents a mitigation taxonomy with deployment-cost ratings.
+This repository is the reproducibility artifact for a defensive-security study of an **out-of-band signaling technique** that establishes a WebRTC DataChannel between two co-present devices - a workstation and a smartphone - using a visual (QR) channel in one direction and an acoustic channel in the other. The study characterises the resulting enterprise egress surface, ships a deployable detection signature (a [Sigma](https://sigmahq.io/) rule), and presents a mitigation taxonomy with deployment-cost ratings.
 
-Everything needed to re-run the experiments and re-derive the reported numbers is included: the reference implementation, the Docker testbed, the per-scenario measurement data under [`evidence/`](evidence/), and the detection rule under [`sigma/`](sigma/). The artifact accompanies a paper under submission to Elsevier *Computers & Security*.
+Everything needed to re-run the experiments and re-derive the reported numbers is included: the reference implementation, the Docker testbed, the per-scenario measurement data, and the detection rule. The artifact accompanies a paper under submission to Elsevier *Computers & Security*.
 
-> **Scope and intent.** This is defensive-security research, built entirely from public, intended-purpose browser APIs and existing open-source components. It is **not** a browser vulnerability and there is nothing to patch — the countermeasures are deployment-side and are documented below. Released for defensive research, security education, and reproducible evaluation; **not** as an exfiltration tool.
+> **Scope and intent.** This is defensive-security research, built entirely from public, intended-purpose browser APIs and existing open-source components. It is **not** a browser vulnerability and there is nothing to patch - the countermeasures are deployment-side and are documented below. Released for defensive research, security education, and reproducible evaluation; **not** as an exfiltration tool.
 
-## Live Demo — in your browser, no install
+## Live Demo - in your browser, no install
 
-The quickest way to see the mechanism is the **live demo** on GitHub Pages,
-served over HTTPS so there is no certificate or local server to set up. You
-need a laptop **and** a phone on the same Wi-Fi:
+The quickest way to see the mechanism is the **live demo** on GitHub Pages, served over HTTPS so there is no certificate or local server to set up. You need a laptop **and** a phone on the same Wi-Fi:
 
-### [▶ Open the live demo →](https://vbocan.github.io/webrtc-oob-pairing/poc/)
+### [▶ Open the live demo](https://vbocan.github.io/webrtc-oob-pairing/poc/)
 
-1. **Laptop:** open the link, pick a microphone, and click **Start pairing** — a QR code appears.
+1. **Laptop:** open the link, pick a microphone, and click **Start pairing** - a QR code appears.
 2. **Phone:** open the same link, choose the **phone** role, tap **Start scanner** (grant the camera), and aim it at the laptop's QR code.
 3. The phone plays a brief chirp; within ~10 seconds both screens show **Connected**.
-4. Click any of the five sample photos on the laptop to send it to the phone — peer-to-peer, with no server in the path.
-
-> **What this shows — and what it doesn't.** This is a *benign mechanism demonstration*: it pairs **two of your own devices** and transfers only **public-domain sample images** (or a file you choose), never real data. It reproduces the QR + acoustic + WebRTC **bootstrap**. The paper's *findings* — invisibility to a TLS-intercepting proxy, establishment with external DNS sinkholed, the Sigma detection rate, and the mitigations — are reproduced separately via [`autorunner/`](autorunner/) and [`testbed/`](testbed/), with the recorded data under [`evidence/`](evidence/).
-
-If the two devices cannot reach each other on the LAN, the DataChannel never forms — which is exactly the **Wi-Fi client isolation** mitigation (M1) from the paper. The demo uses only standard browser APIs, and the microphone and camera are granted in your own browser session.
-
-> **Prefer to run it locally?** See the [Quick Start](#quick-start) below (`poc/` over an HTTPS dev server).
+4. Click any of the five sample photos on the laptop to send it to the phone - peer-to-peer, with no server in the path.
 
 ## Quick Start
 
@@ -56,8 +48,8 @@ cd autorunner && pip install -r requirements.txt && python make_cert.py && pytho
 
 Then:
 
-1. **Phone** — open the printed LAN URL (`phone.html`), Measurement mode → **Auto-rescan** ✓ → **Start scanner**.
-2. **Workstation** — open `https://localhost:8000/laptop.html`, pick the mic, set **Iterations** and **Test file(s)** (a comma list sweeps sizes, e.g. `100,1024,10240` KB), click **Run**. The runner does N unattended pairings, re-pairing each time.
+1. **Phone** - open the printed LAN URL (`phone.html`), Measurement mode → **Auto-rescan** ✓ → **Start scanner**.
+2. **Workstation** - open `https://localhost:8000/laptop.html`, pick the mic, set **Iterations** and **Test file(s)** (a comma list sweeps sizes, e.g. `100,1024,10240` KB), click **Run**. The runner does N unattended pairings, re-pairing each time.
 3. **Download log** on both pages → save into `evidence/<scenario>/` as `laptop.jsonl` / `phone.jsonl`.
 
 The pages emit a structured JSONL event log on both sides (`session_start`, `pairing_start`, `offer_created`, `qr_rendered`, `mic_listening`, `audio_frame_decoded`, `ice_connected`, `datachannel_open`, `transfer_*`), version-tagged in every `session_start`.
@@ -82,21 +74,21 @@ Scenario codes group by outcome class: **B** = baseline/characterization, **E** 
 | Scenario (folder) | Condition imposed | How | Result |
 |---|---|---|---|
 | **B1** `baseline/` | none (open LAN, defaults) | run as-is, N=10 @ 100 kB | 10/10 paired |
-| **B2** `throughput/` (+ `-rerun/`) | none; sweep payload sizes | Test file(s) = `100,1024,10240`, N=10 each | ~6–7 MB/s steady state |
+| **B2** `throughput/` (+ `-rerun/`) | none; sweep payload sizes | Test file(s) = `100,1024,10240`, N=10 each | ~6-7 MB/s steady state |
 | **E1** `tls-proxy/` | TLS-intercepting proxy in front of the workstation | mitmproxy in Docker (`testbed/tls-proxy`); launch a throwaway browser with `--proxy-server=127.0.0.1:8080 --ignore-certificate-errors` | 10/10 **through** the proxy; **0** flows to the peer (`proxy-evidence.md`) |
 | **E2** `dns-denied/` | workstation browser cannot resolve any external name | serve from Docker (`autorunner`); launch a throwaway browser with `--host-resolver-rules="MAP * ~NOTFOUND, EXCLUDE localhost"`; confirm `example.com` fails | 5/5 paired with DNS denied (host↔host, no name resolved) |
-| **M1** `wifi-isolation/` | phone has **no LAN path** to the workstation | put the phone on a network with no route to any workstation IP (cellular, or true AP/station isolation, or a separate firewalled subnet). **First verify** the workstation page is unreachable from the phone | 0/5 — bootstrap succeeds, ICE finds no pair |
-| **M2** `browser-policy/` | WebRTC disabled by managed-browser policy | throwaway Dockerized Firefox with `media.peerconnection.enabled=false` locked (`testbed/m2-browser-policy/`) | 0/5 — `RTCPeerConnection` construction refused |
+| **M1** `wifi-isolation/` | phone has **no LAN path** to the workstation | put the phone on a network with no route to any workstation IP (cellular, or true AP/station isolation, or a separate firewalled subnet). **First verify** the workstation page is unreachable from the phone | 0/5 - bootstrap succeeds, ICE finds no pair |
+| **M2** `browser-policy/` | WebRTC disabled by managed-browser policy | throwaway Dockerized Firefox with `media.peerconnection.enabled=false` locked (`testbed/m2-browser-policy/`) | 0/5 - `RTCPeerConnection` construction refused |
 
 Notes that matter for faithful reproduction:
 
-- **M1:** a consumer "guest network + block-local-access" toggle does **not** isolate if the guest SSID is bridged to the workstation's subnet — the channel establishes normally. Use true station isolation or a separate subnet. See `evidence/wifi-isolation/FAILED-same-subnet.md`.
+- **M1:** a consumer "guest network + block-local-access" toggle does **not** isolate if the guest SSID is bridged to the workstation's subnet - the channel establishes normally. Use true station isolation or a separate subnet. See `evidence/wifi-isolation/FAILED-same-subnet.md`.
 - **E2/M2** need no live phone interaction beyond a normal pairing: E2 is a normal pairing with DNS denied; M2 fails at offer creation before the mic or phone are involved, so it runs headless in the container.
 - The vendored libraries (`autorunner/vendor/`) let the pages load with zero external DNS, which is what makes the E2 browser-flag method clean.
 
 ## The Detection Rule
 
-A browser process that acquires the microphone (`getUserMedia(audio)`) and, within two minutes, opens an `RTCDataChannel` on an origin **not** in the corporate VoIP allowlist — a conjunction that legitimate video calls (media tracks on allowlisted origins) do not produce. Logic lives in [`sigma/rule.yml`](sigma/rule.yml), the allowlist in [`sigma/allowlist.yml`](sigma/allowlist.yml), and the telemetry it needs (and which sources supply it) in [`sigma/telemetry-pipeline.md`](sigma/telemetry-pipeline.md).
+A browser process that acquires the microphone (`getUserMedia(audio)`) and, within two minutes, opens an `RTCDataChannel` on an origin **not** in the corporate VoIP allowlist - a conjunction that legitimate video calls (media tracks on allowlisted origins) do not produce. Logic lives in [`sigma/rule.yml`](sigma/rule.yml), the allowlist in [`sigma/allowlist.yml`](sigma/allowlist.yml), and the telemetry it needs (and which sources supply it) in [`sigma/telemetry-pipeline.md`](sigma/telemetry-pipeline.md).
 
 Re-derive the measured detection rate (**25/25 pairings, 100%**) from the committed data:
 
@@ -113,7 +105,7 @@ python jsonl_to_webrtc_api.py \
 ## Key Results
 
 - The DataChannel establishes through a **TLS-intercepting proxy** and through **denied DNS**, and moves megabytes within the co-presence window.
-- It is **stopped** by Wi-Fi client isolation (no LAN path) and by a browser policy disabling WebRTC — the two recommended mitigations.
+- It is **stopped** by Wi-Fi client isolation (no LAN path) and by a browser policy disabling WebRTC - the two recommended mitigations.
 - The Sigma rule fires on **25/25** captured pairings (100% detection rate).
 
 ## Citation
@@ -121,28 +113,27 @@ python jsonl_to_webrtc_api.py \
 If you use this artifact in your research, please cite:
 
 ```bibtex
-@misc{bocan2026webrtcoob,
-  title        = {WebRTC Out-of-Band Pairing: Reproducibility Artifact},
-  author       = {Bocan, Valer},
-  year         = {2026},
-  howpublished = {\url{https://github.com/vbocan/webrtc-oob-pairing}},
-  note         = {Artifact accompanying a paper under submission to
-                  Elsevier Computers \& Security}
+@unpublished{bocan2026looklistenleak,
+  title  = {Look, Listen, Leak: Out-of-Band WebRTC Pairing as an Enterprise Egress Surface},
+  author = {Bocan, Valer},
+  year   = {2026},
+  note   = {Manuscript under submission to Elsevier Computers \& Security.
+            Artifact: \url{https://github.com/vbocan/webrtc-oob-pairing}}
 }
 ```
 
-The corresponding paper citation will be added here on acceptance.
+Full publication details (venue, volume, DOI) will be added on acceptance.
 
 ## License
 
-Code and data are licensed under the **MIT License** — see [`LICENSE`](LICENSE). The accompanying paper text and figures are licensed separately (CC-BY at publication).
-
-Copyright © 2026 **[Valer BOCAN](https://www.bocan.ro), PhD, CSSLP** — Department of Computer and Information Technology, Politehnica University of Timișoara.
+Code and data are licensed under the **MIT License** - see [`LICENSE`](LICENSE). The accompanying paper text and figures are licensed separately (CC-BY at publication).
 
 ## Author & Contact
 
 **Author**: Valer Bocan, PhD, CSSLP
 **Affiliation**: Department of Computer and Information Technology, Politehnica University of Timișoara
 
-- **Issues**: Report problems or questions via [GitHub Issues](https://github.com/vbocan/webrtc-oob-pairing/issues)
 - **Email**: valer.bocan@upt.ro
+- **Web**: https://www.bocan.ro
+- **ORCID**: [0009-0006-9084-4064](https://orcid.org/0009-0006-9084-4064)
+
