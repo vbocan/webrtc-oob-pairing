@@ -130,8 +130,8 @@ Code and data are licensed under the **MIT License** - see [`LICENSE`](LICENSE).
 
 ## Author & Contact
 
-**Author**: Valer Bocan, PhD, CSSLP
-**Affiliation**: Department of Computer and Information Technology, Politehnica University of Timișoara
+**Author**: Valer Bocan, PhD, CSSLP<br>
+**Affiliation**: Department of Computer and Information Technology, Politehnica University of Timișoara<br>
 
 - **Email**: valer.bocan@upt.ro
 - **Web**: https://www.bocan.ro
