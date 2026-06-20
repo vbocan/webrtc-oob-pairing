@@ -21,6 +21,10 @@ Everything needed to re-run the experiments and re-derive the reported numbers i
 
 ## Live Demo - in your browser, no install
 
+**Watch a full pairing** (37-second video):
+
+[![Watch the WebRTC out-of-band pairing demo](media/demo-poster.jpg)](media/webrtc-oob-pairing-demo.mp4)
+
 The quickest way to see the mechanism is the **live demo** on GitHub Pages, served over HTTPS so there is no certificate or local server to set up. You need a laptop **and** a phone on the same Wi-Fi:
 
 ### [▶ Open the live demo](https://vbocan.github.io/webrtc-oob-pairing/poc/)
@@ -131,7 +135,7 @@ Code and data are licensed under the **MIT License** - see [`LICENSE`](LICENSE).
 ## Author & Contact
 
 **Author**: Valer Bocan, PhD, CSSLP<br>
-**Affiliation**: Department of Computer and Information Technology, Politehnica University of Timișoara<br>
+**Affiliation**: Department of Computer and Information Technology, Politehnica University of Timișoara
 
 - **Email**: valer.bocan@upt.ro
 - **Web**: https://www.bocan.ro
